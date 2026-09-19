@@ -1,0 +1,159 @@
+[
+  {
+    "id": "P6-Q001",
+    "query": "What approval is required for international business travel?",
+    "expected_chunks": [
+      "DOC_TRAVEL_POLICY_C002"
+    ],
+    "intent": "international travel approval"
+  },
+  {
+    "id": "P6-Q002",
+    "query": "What documents are needed for an international hotel reimbursement claim?",
+    "expected_chunks": [
+      "DOC_EXPENSE_REIMBURSEMENT_POLICY_C002"
+    ],
+    "intent": "international reimbursement documentation"
+  },
+  {
+    "id": "P6-Q003",
+    "query": "How long do I have to submit an expense claim?",
+    "expected_chunks": [
+      "DOC_EXPENSE_REIMBURSEMENT_POLICY_C003"
+    ],
+    "intent": "expense submission deadline"
+  },
+  {
+    "id": "P6-Q004",
+    "query": "What are the cancellation terms for a workshop venue?",
+    "expected_chunks": [
+      "DOC_WORKSHOP_EVENT_POLICY_C002"
+    ],
+    "intent": "workshop cancellation"
+  },
+  {
+    "id": "P6-Q005",
+    "query": "What catering arrangements are allowed for workshops?",
+    "expected_chunks": [
+      "DOC_WORKSHOP_EVENT_POLICY_C003"
+    ],
+    "intent": "workshop catering"
+  },
+  {
+    "id": "P6-Q006",
+    "query": "What rules apply when an employee travels within the country?",
+    "expected_chunks": [
+      "DOC_TRAVEL_POLICY_C001"
+    ],
+    "intent": "domestic travel"
+  },
+  {
+    "id": "P6-Q007",
+    "query": "What approval is required for external training or certification?",
+    "expected_chunks": [
+      "DOC_TRAINING_CERTIFICATION_POLICY_C002"
+    ],
+    "intent": "training approval"
+  },
+  {
+    "id": "P6-Q008",
+    "query": "What proof is needed to claim certification reimbursement?",
+    "expected_chunks": [
+      "DOC_TRAINING_CERTIFICATION_POLICY_C003"
+    ],
+    "intent": "certification reimbursement"
+  },
+  {
+    "id": "P6-Q009",
+    "query": "What should I do if my company laptop is stolen?",
+    "expected_chunks": [
+      "DOC_IT_ASSET_POLICY_C004"
+    ],
+    "intent": "lost or stolen IT asset"
+  },
+  {
+    "id": "P6-Q010",
+    "query": "What should employees do about suspicious phishing emails?",
+    "expected_chunks": [
+      "DOC_INFORMATION_SECURITY_POLICY_C004"
+    ],
+    "intent": "phishing"
+  },
+  {
+    "id": "P6-Q011",
+    "query": "How should personal data be handled and retained?",
+    "expected_chunks": [
+      "DOC_DATA_PRIVACY_POLICY_C001",
+      "DOC_DATA_PRIVACY_POLICY_C004"
+    ],
+    "intent": "personal data retention"
+  },
+  {
+    "id": "P6-Q012",
+    "query": "What is required before buying goods for the company?",
+    "expected_chunks": [
+      "DOC_PROCUREMENT_POLICY_C001"
+    ],
+    "intent": "purchase request"
+  },
+  {
+    "id": "P6-Q013",
+    "query": "Who approves regular remote work?",
+    "expected_chunks": [
+      "DOC_REMOTE_WORK_POLICY_C002"
+    ],
+    "intent": "remote work approval"
+  },
+  {
+    "id": "P6-Q014",
+    "query": "What documents are required for relocation claims?",
+    "expected_chunks": [
+      "DOC_RELOCATION_POLICY_C005"
+    ],
+    "intent": "relocation documentation"
+  },
+  {
+    "id": "P6-Q015",
+    "query": "How should a workplace incident be reported?",
+    "expected_chunks": [
+      "DOC_INCIDENT_REPORTING_POLICY_C001"
+    ],
+    "intent": "incident reporting"
+  },
+  {
+    "id": "P6-Q016",
+    "query": "What approval is needed for international travel and what documentation is needed for reimbursement?",
+    "expected_chunks": [
+      "DOC_TRAVEL_POLICY_C002",
+      "DOC_EXPENSE_REIMBURSEMENT_POLICY_C002"
+    ],
+    "intents": [
+      "international travel approval",
+      "international reimbursement documentation"
+    ]
+  },
+  {
+    "id": "P6-Q017",
+    "query": "What approval is needed for a workshop and what catering arrangements are allowed?",
+    "expected_chunks": [
+      "DOC_WORKSHOP_EVENT_POLICY_C001",
+      "DOC_WORKSHOP_EVENT_POLICY_C003"
+    ],
+    "intents": [
+      "workshop approval",
+      "workshop catering"
+    ]
+  },
+  {
+    "id": "P6-Q018",
+    "query": "What happens if company equipment is lost and how should the incident be reported?",
+    "expected_chunks": [
+      "DOC_IT_ASSET_POLICY_C004",
+      "DOC_INCIDENT_REPORTING_POLICY_C006"
+    ],
+    "intents": [
+      "lost company equipment",
+      "incident follow-up"
+    ]
+  }
+]

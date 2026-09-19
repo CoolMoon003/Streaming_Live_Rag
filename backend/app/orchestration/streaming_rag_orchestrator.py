@@ -151,6 +151,11 @@ class StreamingRagOrchestrator:
         # Detect multi-intent vs single-intent
         multi_intent_dec = self.multi_intent_detector.detect(text)
 
+        # Keep the per-intent retrieval structure so a later commit can
+        # reuse the early multi-intent retrieval instead of falling back
+        # to the flattened evidence list.
+        intent_results: list[dict[str, Any]] | None = None
+
         if multi_intent_dec.is_multi_intent:
             subqueries = self.multi_intent_decomposer.decompose(text)
             subquery_strings = [sq.query for sq in subqueries]
@@ -160,6 +165,7 @@ class StreamingRagOrchestrator:
                 generation_id=generation_id,
             )
             raw_results = retrieval_res["results"]
+            intent_results = retrieval_res.get("subqueries") or None
             is_multi = True
         else:
             retrieval_res = await self.async_retriever.retrieve(
@@ -167,13 +173,23 @@ class StreamingRagOrchestrator:
                 generation_id=generation_id,
             )
             raw_results = retrieval_res["results"]["reranked_results"]
+            intent_results = None
             is_multi = False
 
-        # Apply stale generation guard: only store if generation_id is still active
+        # Apply stale generation guard: only store if generation_id is still active.
+        #
+        # IMPORTANT:
+        # For multi-intent retrieval we store both:
+        #   1. flattened evidence
+        #   2. per-intent retrieval results
+        #
+        # This allows process_commit() to recover the multi-intent structure
+        # when it reuses this early retrieval.
         accepted = session.accept_results(
             generation_id=generation_id,
             query=text,
             results=raw_results,
+            intent_results=intent_results,
         )
 
         if not accepted:
@@ -216,7 +232,12 @@ class StreamingRagOrchestrator:
         # -------------------------------------------------------------
         # 1. Analyze Refinement Intent
         # -------------------------------------------------------------
-        previous = session.previous_query if session.previous_query else session.current_query
+        previous = (
+            session.previous_query
+            if session.previous_query
+            else session.current_query
+        )
+
         refinement_dec = self.refinement_analyzer.analyze(
             previous_query=previous,
             new_query=text,
@@ -268,17 +289,21 @@ class StreamingRagOrchestrator:
             # refinement text itself, so capture the real previous query first.
             additive_previous = previous
             generation_id = session.start_new_query(text)
+
             refinement = self.refinement_retriever.retrieve_refinement(
                 previous_query=additive_previous,
                 refinement_query=text,
                 existing_results=session.latest_results,
             )
+
             active_query = refinement["contextual_query"]
             evidence = refinement["merged_results"]
+
             session.accept_results(
                 generation_id=generation_id,
-                query=active_query,
+                query=text,
                 results=evidence,
+                intent_results=intent_results,
             )
 
         elif refinement_type == RefinementType.REPLACEMENT:
@@ -287,32 +312,44 @@ class StreamingRagOrchestrator:
                 refinement_query=text,
                 refinement_type="REPLACEMENT",
             )
+
             clean_query = query_info["query"]
             active_query = clean_query
             generation_id = session.start_new_query(clean_query)
 
             # Check multi-intent on replacement
             multi_dec = self.multi_intent_detector.detect(clean_query)
+
             if multi_dec.is_multi_intent:
                 subqueries = self.multi_intent_decomposer.decompose(clean_query)
+
                 ret_res = await self.multi_intent_retriever.retrieve(
                     subqueries=[sq.query for sq in subqueries],
                     generation_id=generation_id,
                 )
+
                 evidence = ret_res["results"]
                 intent_results = ret_res.get("subqueries") or None
+
+                session.accept_results(
+                    generation_id=generation_id,
+                    query=clean_query,
+                    results=evidence,
+                    intent_results=intent_results,
+                )
             else:
                 ret_res = await self.async_retriever.retrieve(
                     query=clean_query,
                     generation_id=generation_id,
                 )
+
                 evidence = ret_res["results"]["reranked_results"]
 
-            session.accept_results(
-                generation_id=generation_id,
-                query=clean_query,
-                results=evidence,
-            )
+                session.accept_results(
+                    generation_id=generation_id,
+                    query=clean_query,
+                    results=evidence,
+                )
 
         else:
             # NEW Query: reuse the accepted early retrieval when the commit
@@ -323,19 +360,29 @@ class StreamingRagOrchestrator:
                 generation_id = reuse.retrieval.generation_id
                 evidence = reuse.retrieval.results
 
+                # IMPORTANT:
+                # Recover the per-intent structure saved during early retrieval.
+                intent_results = reuse.retrieval.intent_results
+
             elif reuse.mode == "extension":
                 early_evidence = reuse.retrieval.results
+
+                # Preserve multi-intent metadata while extending the query.
+                intent_results = reuse.retrieval.intent_results
+
                 generation_id = session.start_new_query(text)
 
                 delta_query = build_delta_query(reuse.added_tokens)
 
                 if delta_query and delta_needs_retrieval(
-                    delta_query, early_evidence
+                    delta_query,
+                    early_evidence,
                 ):
                     delta_res = await self.async_retriever.retrieve(
                         query=delta_query,
                         generation_id=generation_id,
                     )
+
                     evidence = merge_evidence(
                         early_evidence,
                         delta_res["results"]["reranked_results"],
@@ -347,6 +394,7 @@ class StreamingRagOrchestrator:
                     generation_id=generation_id,
                     query=text,
                     results=evidence,
+                    intent_results=intent_results,
                 )
 
             else:
@@ -355,24 +403,34 @@ class StreamingRagOrchestrator:
 
                 if multi_dec.is_multi_intent:
                     subqueries = self.multi_intent_decomposer.decompose(text)
+
                     ret_res = await self.multi_intent_retriever.retrieve(
                         subqueries=[sq.query for sq in subqueries],
                         generation_id=generation_id,
                     )
+
                     evidence = ret_res["results"]
                     intent_results = ret_res.get("subqueries") or None
+
+                    session.accept_results(
+                        generation_id=generation_id,
+                        query=text,
+                        results=evidence,
+                        intent_results=intent_results,
+                    )
                 else:
                     ret_res = await self.async_retriever.retrieve(
                         query=text,
                         generation_id=generation_id,
                     )
+
                     evidence = ret_res["results"]["reranked_results"]
 
-                session.accept_results(
-                    generation_id=generation_id,
-                    query=text,
-                    results=evidence,
-                )
+                    session.accept_results(
+                        generation_id=generation_id,
+                        query=text,
+                        results=evidence,
+                    )
 
         # -------------------------------------------------------------
         # 4. Evidence Selection Stage
@@ -386,14 +444,23 @@ class StreamingRagOrchestrator:
             # not comparable, so a single global selection lets one intent take
             # the whole evidence budget and a single global gate cannot say
             # "intent 1 supported, intent 2 unsupported".
-            per_intent = self.evidence_selector.select_per_intent(intent_results)
-            support_map = self.evidence_gate.check_per_intent(per_intent)
+            per_intent = self.evidence_selector.select_per_intent(
+                intent_results
+            )
+
+            support_map = self.evidence_gate.check_per_intent(
+                per_intent
+            )
 
             supported_entries = [
-                entry for entry in support_map if entry["supported"]
+                entry
+                for entry in support_map
+                if entry["supported"]
             ]
+
             supported_intent_ids = {
-                entry["intent_id"] for entry in supported_entries
+                entry["intent_id"]
+                for entry in supported_entries
             }
 
             candidate_evidence = self.evidence_selector.flatten_per_intent(
@@ -406,15 +473,20 @@ class StreamingRagOrchestrator:
             # "evidence was filtered out" when an intent comes back
             # unsupported.
             top_scores = {}
+
             for intent_result in intent_results:
-                reranked = self.evidence_selector.intent_reranked_results(
-                    intent_result
+                reranked = (
+                    self.evidence_selector.intent_reranked_results(
+                        intent_result
+                    )
                 )
+
                 scores = [
                     item["reranker_score"]
                     for item in reranked
                     if item.get("reranker_score") is not None
                 ]
+
                 top_scores[intent_result.get("intent_id")] = (
                     max(scores) if scores else None
                 )
@@ -423,11 +495,16 @@ class StreamingRagOrchestrator:
                 {
                     "intent_id": entry["intent_id"],
                     "query": entry["query"],
-                    "evidence": entry["evidence"] if entry["supported"] else [],
+                    "evidence": (
+                        entry["evidence"]
+                        if entry["supported"]
+                        else []
+                    ),
                     "supported": entry["supported"],
                     "reason": entry["decision"].reason,
                     "selected_chunk_ids": [
-                        result["chunk"]["chunk_id"] for result in entry["evidence"]
+                        result["chunk"]["chunk_id"]
+                        for result in entry["evidence"]
                     ],
                     "retrieved": len(
                         self.evidence_selector.intent_reranked_results(
@@ -443,7 +520,8 @@ class StreamingRagOrchestrator:
                 gate_decision = EvidenceDecision(
                     sufficient=True,
                     confidence=max(
-                        entry["decision"].confidence for entry in supported_entries
+                        entry["decision"].confidence
+                        for entry in supported_entries
                     ),
                     reason="sufficient_evidence",
                     supported_chunk_ids=[
@@ -457,12 +535,18 @@ class StreamingRagOrchestrator:
                 # No intent has usable evidence: fall through to the existing
                 # refusal path with the first intent's reason.
                 gate_decision = support_map[0]["decision"]
+
         else:
             selected_evidence = self.evidence_selector.select(
                 results=evidence,
                 query=active_query,
             )
-            candidate_evidence = selected_evidence if selected_evidence else evidence
+
+            candidate_evidence = (
+                selected_evidence
+                if selected_evidence
+                else evidence
+            )
 
             gate_decision = self.evidence_gate.check(
                 results=candidate_evidence,
@@ -472,12 +556,13 @@ class StreamingRagOrchestrator:
         if not gate_decision.sufficient:
             if gate_decision.reason == "missing_numeric_fact":
                 refusal_msg = (
-                    "The provided corpus does not contain enough evidence to determine "
-                    "the requested amount or numeric figure."
+                    "The provided corpus does not contain enough evidence to "
+                    "determine the requested amount or numeric figure."
                 )
             else:
                 refusal_msg = (
-                    "The provided corpus does not contain enough evidence to answer this."
+                    "The provided corpus does not contain enough evidence "
+                    "to answer this."
                 )
 
             answer_state = session.save_answer(
@@ -555,6 +640,7 @@ class StreamingRagOrchestrator:
 
         for token in token_stream:
             full_answer_parts.append(token)
+
             yield {
                 "event": "answer_token",
                 "token": token,
@@ -583,7 +669,8 @@ class StreamingRagOrchestrator:
 
         if not citation_check["valid"]:
             final_answer = (
-                "The generated answer could not be verified against the provided corpus."
+                "The generated answer could not be verified against "
+                "the provided corpus."
             )
             valid_citations = []
         else:

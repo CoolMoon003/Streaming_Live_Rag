@@ -1,0 +1,275 @@
+==============================
+LLAMA 3.2 3B
+==============================
+
+(.venv) PS C:\Users\Naveen\Desktop\Streaming-Live-RAG> python -m scripts.test_model_benchmark llama3.2:3b
+======================================================================
+MODEL BENCHMARK: llama3.2:3b
+======================================================================
+
+WARM-UP...
+Warm-up: 9587 ms
+
+----------------------------------------------------------------------
+TEST: speed
+Wall time: 2837 ms
+Load duration: 0.016 s
+Prompt evaluation: 0.383 s
+Generation: 0.372 s
+Prompt tokens: 40
+Output tokens: 7
+Generation speed: 18.81 tok/s
+
+OUTPUT:
+The answer is 4.
+
+----------------------------------------------------------------------
+TEST: grounded
+Wall time: 4924 ms
+Load duration: 0.006 s
+Prompt evaluation: 1.784 s
+Generation: 1.067 s
+Prompt tokens: 110
+Output tokens: 18
+Generation speed: 16.87 tok/s
+
+OUTPUT:
+Prior approval from the appropriate manager. [DOC_TRAVEL_POLICY_C002 §2]
+
+----------------------------------------------------------------------
+TEST: missing_fact
+Wall time: 5182 ms
+Load duration: 0.007 s
+Prompt evaluation: 1.798 s
+Generation: 1.331 s
+Prompt tokens: 129
+Output tokens: 22
+Generation speed: 16.52 tok/s
+
+OUTPUT:
+The provided corpus does not contain enough evidence to determine the maximum international airfare amount an employee can claim.
+
+----------------------------------------------------------------------
+TEST: multi_fact
+Wall time: 7839 ms
+Load duration: 0.007 s
+Prompt evaluation: 2.150 s
+Generation: 3.614 s
+Prompt tokens: 141
+Output tokens: 59
+Generation speed: 16.32 tok/s
+
+OUTPUT:
+According to the provided evidence:
+
+* Approval for international travel requires prior approval from the appropriate manager (DOC_TRAVEL_POLICY_C002 §2).
+* Booking requirements for international travel include using the approved booking process, with late bookings potentially requiring additional approval (DOC_TRAVEL_POLICY_C003 §3).
+
+======================================================================
+BENCHMARK COMPLETE
+======================================================================
+
+==============================
+QWEN 2.5 3B
+==============================
+
+(.venv) PS C:\Users\Naveen\Desktop\Streaming-Live-RAG> python -m scripts.test_model_benchmark qwen2.5:3b
+======================================================================
+MODEL BENCHMARK: qwen2.5:3b
+======================================================================
+
+WARM-UP...
+Warm-up: 8127 ms
+
+----------------------------------------------------------------------
+TEST: speed
+Wall time: 2968 ms
+Load duration: 0.006 s
+Prompt evaluation: 0.410 s
+Generation: 0.515 s
+Prompt tokens: 44
+Output tokens: 9
+Generation speed: 17.49 tok/s
+
+OUTPUT:
+2 + 2 is 4.
+
+----------------------------------------------------------------------
+TEST: grounded
+Wall time: 5192 ms
+Load duration: 0.007 s
+Prompt evaluation: 1.683 s
+Generation: 1.470 s
+Prompt tokens: 116
+Output tokens: 26
+Generation speed: 17.69 tok/s
+
+OUTPUT:
+International travel requires prior approval from the appropriate manager. [DOC_TRAVEL_POLICY_C002 §2. International Travel]
+
+----------------------------------------------------------------------
+TEST: missing_fact
+Wall time: 4321 ms
+Load duration: 0.006 s
+Prompt evaluation: 1.725 s
+Generation: 0.550 s
+Prompt tokens: 135
+Output tokens: 10
+Generation speed: 18.18 tok/s
+
+OUTPUT:
+The provided corpus does not contain enough evidence.
+
+----------------------------------------------------------------------
+TEST: multi_fact
+Wall time: 9036 ms
+Load duration: 0.005 s
+Prompt evaluation: 2.046 s
+Generation: 4.915 s
+Prompt tokens: 149
+Output tokens: 82
+Generation speed: 16.68 tok/s
+
+OUTPUT:
+For international travel, approval is required from the appropriate manager (Evidence: [DOC_TRAVEL_POLICY_C002 §2. International Travel]). Booking should normally be done through the approved booking process (Evidence: [DOC_TRAVEL_POLICY_C003 §3. Booking Requirements]). Late bookings may require additional approval (Evidence: [DOC_TRAVEL_POLICY_C003 §3. Booking Requirements]).
+
+======================================================================
+BENCHMARK COMPLETE
+======================================================================
+
+
+==============================
+GEMMA 3 4B
+==============================
+
+(.venv) PS C:\Users\Naveen\Desktop\Streaming-Live-RAG> python -m scripts.test_model_benchmark gemma3:4b
+======================================================================
+MODEL BENCHMARK: gemma3:4b
+======================================================================
+
+WARM-UP...
+Warm-up: 2723 ms
+
+----------------------------------------------------------------------
+TEST: speed
+Wall time: 2867 ms
+Load duration: 0.005 s
+Prompt evaluation: 0.201 s
+Generation: 0.620 s
+Prompt tokens: 25
+Output tokens: 9
+Generation speed: 14.51 tok/s
+
+OUTPUT:
+2 + 2 equals 4.
+
+----------------------------------------------------------------------
+TEST: grounded
+Wall time: 6510 ms
+Load duration: 0.005 s
+Prompt evaluation: 2.553 s
+Generation: 1.864 s
+Prompt tokens: 107
+Output tokens: 24
+Generation speed: 12.88 tok/s
+
+OUTPUT:
+Prior approval from the appropriate manager [DOC_TRAVEL_POLICY_C002 §2. International Travel].
+
+----------------------------------------------------------------------
+TEST: missing_fact
+Wall time: 5773 ms
+Load duration: 0.005 s
+Prompt evaluation: 2.947 s
+Generation: 0.760 s
+Prompt tokens: 127
+Output tokens: 10
+Generation speed: 13.16 tok/s
+
+OUTPUT:
+The provided corpus does not contain enough evidence.
+
+----------------------------------------------------------------------
+TEST: multi_fact
+Wall time: 9182 ms
+Load duration: 0.004 s
+Prompt evaluation: 3.343 s
+Generation: 3.763 s
+Prompt tokens: 145
+Output tokens: 48
+Generation speed: 12.76 tok/s
+
+OUTPUT:
+International travel requires prior approval from the appropriate manager [DOC_TRAVEL_POLICY_C002 §2]. Travel should normally be booked through the approved booking process [DOC_TRAVEL_POLICY_C003 §3].
+
+======================================================================
+BENCHMARK COMPLETE
+======================================================================
+
+==============================
+QWEN 3 8B
+==============================
+
+(.venv) PS C:\Users\Naveen\Desktop\Streaming-Live-RAG> python -m scripts.test_model_benchmark qwen3:8b
+======================================================================
+MODEL BENCHMARK: qwen3:8b
+======================================================================
+
+WARM-UP...
+Warm-up: 18639 ms
+
+----------------------------------------------------------------------
+TEST: speed
+Wall time: 5083 ms
+Load duration: 0.013 s
+Prompt evaluation: 1.695 s
+Generation: 1.298 s
+Prompt tokens: 31
+Output tokens: 9
+Generation speed: 6.93 tok/s
+
+OUTPUT:
+2 + 2 equals 4.
+
+----------------------------------------------------------------------
+TEST: grounded
+Wall time: 11285 ms
+Load duration: 0.004 s
+Prompt evaluation: 5.209 s
+Generation: 4.001 s
+Prompt tokens: 103
+Output tokens: 28
+Generation speed: 7.00 tok/s
+
+OUTPUT:
+Prior approval from the appropriate manager is required for international travel. [DOC_TRAVEL_POLICY_C002 §2. International Travel]
+
+----------------------------------------------------------------------
+TEST: missing_fact
+Wall time: 7777 ms
+Load duration: 0.005 s
+Prompt evaluation: 4.430 s
+Generation: 1.277 s
+Prompt tokens: 122
+Output tokens: 10
+Generation speed: 7.83 tok/s
+
+OUTPUT:
+The provided corpus does not contain enough evidence.
+
+----------------------------------------------------------------------
+TEST: multi_fact
+Wall time: 15059 ms
+Load duration: 0.004 s
+Prompt evaluation: 5.561 s
+Generation: 7.407 s
+Prompt tokens: 136
+Output tokens: 52
+Generation speed: 7.02 tok/s
+
+OUTPUT:
+International travel requires prior approval from the appropriate manager (DOC_TRAVEL_POLICY_C002 §2). Travel should normally be booked through the approved booking process, and late bookings may require additional approval (DOC_TRAVEL_POLICY_C003 §3).
+
+======================================================================
+BENCHMARK COMPLETE
+======================================================================

@@ -1,0 +1,20 @@
+.venv/
+**pycache**/
+*.pyc
+.env
+.env.*
+*.log
+
+# Local model/cache files
+
+models/
+.cache/
+huggingface/
+sentence_transformers/
+
+# IDE / OS
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

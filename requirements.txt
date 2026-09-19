@@ -1,0 +1,8 @@
+numpy
+pandas
+pydantic
+sentence-transformers
+faiss-cpu
+rank-bm25
+PyMuPDF
+python-dotenv

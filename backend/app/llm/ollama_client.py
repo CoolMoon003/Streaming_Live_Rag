@@ -33,6 +33,25 @@ class OllamaClient:
         self.last_latency_ms: float = 0.0
         self.last_ttft_ms: float = 0.0
 
+        # Token accounting exactly as reported by Ollama's own response
+        # fields (prompt_eval_count / eval_count). None = not reported.
+        # These are never estimated.
+        self.last_prompt_tokens: int | None = None
+        self.last_completion_tokens: int | None = None
+
+    def _reset_usage(self) -> None:
+        self.last_prompt_tokens = None
+        self.last_completion_tokens = None
+
+    def _record_usage(self, data: dict) -> None:
+        """Capture Ollama-reported token counts from a final /api/generate payload."""
+        prompt = data.get("prompt_eval_count")
+        completion = data.get("eval_count")
+        self.last_prompt_tokens = prompt if isinstance(prompt, int) else None
+        self.last_completion_tokens = (
+            completion if isinstance(completion, int) else None
+        )
+
     def generate(self, prompt: str) -> str:
         payload = {
             "model": self.model,
@@ -45,6 +64,7 @@ class OllamaClient:
             },
         }
 
+        self._reset_usage()
         start_time = time.perf_counter()
 
         response = requests.post(
@@ -59,7 +79,10 @@ class OllamaClient:
         self.last_latency_ms = total_time
         self.last_ttft_ms = total_time
 
-        return response.json()["response"]
+        data = response.json()
+        self._record_usage(data)
+
+        return data["response"]
 
     def generate_stream(self, prompt: str) -> Generator[str, None, None]:
         payload = {
@@ -73,6 +96,7 @@ class OllamaClient:
             },
         }
 
+        self._reset_usage()
         start_time = time.perf_counter()
         ttft_recorded = False
 
@@ -102,10 +126,21 @@ class OllamaClient:
 
             if chunk_data.get("done", False):
                 self.last_latency_ms = (time.perf_counter() - start_time) * 1000.0
+                self._record_usage(chunk_data)
                 break
 
-    def get_last_metrics(self) -> dict[str, float]:
+    def get_last_metrics(self) -> dict[str, float | int | None]:
+        prompt = self.last_prompt_tokens
+        completion = self.last_completion_tokens
+
         return {
             "ttft_ms": round(self.last_ttft_ms, 2),
             "latency_ms": round(self.last_latency_ms, 2),
+            "prompt_tokens": prompt,
+            "completion_tokens": completion,
+            "total_tokens": (
+                prompt + completion
+                if prompt is not None and completion is not None
+                else None
+            ),
         }

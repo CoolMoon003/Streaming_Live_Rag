@@ -1,0 +1,899 @@
+{
+    "benchmark": "G2 Early Retrieval (Streaming Live RAG, Samsung PRISM Theme 04)",
+    "total_cases": 24,
+    "eligible_cases": 18,
+    "early_retrieval_cases": 15,
+    "early_retrieval_rate": 0.8333,
+    "false_trigger_cases": 0,
+    "false_trigger_rate": 0.0,
+    "final_retrieve_rate": 0.75,
+    "cases": [
+        {
+            "case_id": "G2-A01",
+            "category": "clear_query",
+            "description": "Straightforward travel-rules question, builds up word by word.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "I need to know the rules for international travel",
+            "partial_transcripts": [
+                "I need to",
+                "I need to know the rules for",
+                "I need to know the rules for international travel"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "I need to",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 2,
+                    "text": "I need to know the rules for",
+                    "action": "WAIT",
+                    "reason": "incomplete_transcript",
+                    "confidence": 0.88
+                },
+                {
+                    "index": 3,
+                    "text": "I need to know the rules for international travel",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": 3,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-A02",
+            "category": "clear_query",
+            "description": "Short 'what are the rules' question, resolves in one extension.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "What are the international travel rules?",
+            "partial_transcripts": [
+                "What are the",
+                "What are the international travel rules"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "What are the",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 2,
+                    "text": "What are the international travel rules",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": 2,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-A03",
+            "category": "clear_query",
+            "description": "'Who approves' question about domestic travel.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "Who approves domestic travel requests for staff?",
+            "partial_transcripts": [
+                "Who approves",
+                "Who approves domestic travel requests for staff"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "Who approves",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 2,
+                    "text": "Who approves domestic travel requests for staff",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": 2,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-B01",
+            "category": "multi_intent",
+            "description": "First clause is a complete standalone query before 'and' extends it.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "What approval is needed for international travel and what documentation is needed for reimbursement?",
+            "partial_transcripts": [
+                "What approval is needed for",
+                "What approval is needed for international travel",
+                "What approval is needed for international travel and"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "What approval is needed for",
+                    "action": "WAIT",
+                    "reason": "incomplete_transcript",
+                    "confidence": 0.88
+                },
+                {
+                    "index": 2,
+                    "text": "What approval is needed for international travel",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 3,
+                    "text": "What approval is needed for international travel and",
+                    "action": "WAIT",
+                    "reason": "incomplete_transcript",
+                    "confidence": 0.88
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": 2,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-B02",
+            "category": "multi_intent",
+            "description": "Workshop rules clause is already retrievable before phishing clause arrives.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "What are the workshop safety rules and what is the phishing reporting process?",
+            "partial_transcripts": [
+                "What are the workshop safety rules",
+                "What are the workshop safety rules and"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "What are the workshop safety rules",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 2,
+                    "text": "What are the workshop safety rules and",
+                    "action": "WAIT",
+                    "reason": "incomplete_transcript",
+                    "confidence": 0.88
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": 1,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-B03",
+            "category": "multi_intent",
+            "description": "Reimbursement documentation clause is complete before the late-bookings clause.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "What documentation is needed for reimbursement claims and who approves late bookings?",
+            "partial_transcripts": [
+                "What documentation is needed for reimbursement claims",
+                "What documentation is needed for reimbursement claims and"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "What documentation is needed for reimbursement claims",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 2,
+                    "text": "What documentation is needed for reimbursement claims and",
+                    "action": "WAIT",
+                    "reason": "incomplete_transcript",
+                    "confidence": 0.88
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": 1,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-C01",
+            "category": "late_detail",
+            "description": "Core travel question retrieves; 'late bookings' detail added afterward.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "I need to know the rules for international travel and late bookings",
+            "partial_transcripts": [
+                "I need to know the rules for international travel"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "I need to know the rules for international travel",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": 1,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-C02",
+            "category": "late_detail",
+            "description": "Remote-work eligibility question retrieves; equipment stipend detail added afterward.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "What is the policy for remote work eligibility and equipment stipends",
+            "partial_transcripts": [
+                "What is the policy for remote work eligibility"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "What is the policy for remote work eligibility",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": 1,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-C03",
+            "category": "late_detail",
+            "description": "Bare 'who approves domestic travel requests' first WAITs as not-yet-stable, then an additive clause pushes it to RETRIEVE before the (identical) final commit.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "Who approves domestic travel requests especially for last minute trips",
+            "partial_transcripts": [
+                "Who approves domestic travel requests"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "Who approves domestic travel requests",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "additive_refinement",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": 1,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-D01",
+            "category": "presentation_only",
+            "description": "'Repeat that in two bullets' \u2014 pure presentation restructure.",
+            "eligible": false,
+            "expected_early_retrieval": false,
+            "expected_final_action": "SUPPRESS",
+            "final_transcript": "Can you repeat that in two bullets",
+            "partial_transcripts": [
+                "Can you",
+                "Can you repeat that"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "Can you",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 2,
+                    "text": "Can you repeat that",
+                    "action": "SUPPRESS",
+                    "reason": "presentation_restructure",
+                    "confidence": 0.95
+                }
+            ],
+            "final_action": "SUPPRESS",
+            "final_reason": "presentation_restructure",
+            "final_confidence": 0.95,
+            "first_early_retrieve_index": null,
+            "early_retrieved": false,
+            "false_trigger": false,
+            "suppress_count": 1
+        },
+        {
+            "case_id": "G2-D02",
+            "category": "presentation_only",
+            "description": "'Make it shorter please' \u2014 presentation restructure.",
+            "eligible": false,
+            "expected_early_retrieval": false,
+            "expected_final_action": "SUPPRESS",
+            "final_transcript": "Make it shorter please",
+            "partial_transcripts": [
+                "Make it"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "Make it",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "SUPPRESS",
+            "final_reason": "presentation_restructure",
+            "final_confidence": 0.95,
+            "first_early_retrieve_index": null,
+            "early_retrieved": false,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-D03",
+            "category": "presentation_only",
+            "description": "'Say that again please' \u2014 presentation restructure.",
+            "eligible": false,
+            "expected_early_retrieval": false,
+            "expected_final_action": "SUPPRESS",
+            "final_transcript": "Say that again please",
+            "partial_transcripts": [
+                "Say that"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "Say that",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "SUPPRESS",
+            "final_reason": "presentation_restructure",
+            "final_confidence": 0.95,
+            "first_early_retrieve_index": null,
+            "early_retrieved": false,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-E01",
+            "category": "incomplete_utterance",
+            "description": "Resolves to RETRIEVE one partial before the word 'travel' is even spoken, because 'rules' already signals query intent at >=6 words.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "I need to know the rules for international travel",
+            "partial_transcripts": [
+                "I need to know the rules for",
+                "I need to know the rules for international"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "I need to know the rules for",
+                    "action": "WAIT",
+                    "reason": "incomplete_transcript",
+                    "confidence": 0.88
+                },
+                {
+                    "index": 2,
+                    "text": "I need to know the rules for international",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": 2,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-E02",
+            "category": "incomplete_utterance",
+            "description": "'I was wondering about the...' stays WAIT through both partials; only the final (parental leave) transcript retrieves. A genuine controller gap, kept in the benchmark rather than hidden.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "I was wondering about the policy for parental leave",
+            "partial_transcripts": [
+                "I was wondering",
+                "I was wondering about the"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "I was wondering",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 2,
+                    "text": "I was wondering about the",
+                    "action": "WAIT",
+                    "reason": "incomplete_transcript",
+                    "confidence": 0.88
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": null,
+            "early_retrieved": false,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-E03",
+            "category": "incomplete_utterance",
+            "description": "'I need some information about the...' never matches an explicit query-intent phrase, so even the final transcript only retrieves via the generic final_transcript fallback, not early. A second genuine controller gap.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "I need some information about the training certification process",
+            "partial_transcripts": [
+                "I need",
+                "I need some information about the"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "I need",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 2,
+                    "text": "I need some information about the",
+                    "action": "WAIT",
+                    "reason": "incomplete_transcript",
+                    "confidence": 0.88
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": null,
+            "early_retrieved": false,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-F01",
+            "category": "correction",
+            "description": "Original domestic-travel question retrieves early; user then corrects to international.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "No, I meant the international travel rules",
+            "partial_transcripts": [
+                "I need to know the domestic travel rules"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "I need to know the domestic travel rules",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "query_correction_or_replacement",
+            "final_confidence": 0.92,
+            "first_early_retrieve_index": 1,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-F02",
+            "category": "correction",
+            "description": "Domestic travel policy question retrieves early; user corrects with 'actually'.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "Actually I meant international travel policy",
+            "partial_transcripts": [
+                "What is the policy for domestic travel"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "What is the policy for domestic travel",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "query_correction_or_replacement",
+            "final_confidence": 0.92,
+            "first_early_retrieve_index": 1,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-F03",
+            "category": "correction",
+            "description": "Workshop schedule question retrieves early; user replaces it with phishing question.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "No not that, tell me about the phishing reporting steps",
+            "partial_transcripts": [
+                "Tell me about the workshop schedule"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "Tell me about the workshop schedule",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "query_correction_or_replacement",
+            "final_confidence": 0.92,
+            "first_early_retrieve_index": 1,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-G01",
+            "category": "noisy_short",
+            "description": "Filler ('um so like') precedes a clear travel-rules question that still retrieves early.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "um so like what are the travel rules?",
+            "partial_transcripts": [
+                "um",
+                "um so like",
+                "um so like what are the travel rules"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "um",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 2,
+                    "text": "um so like",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 3,
+                    "text": "um so like what are the travel rules",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": 3,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-G02",
+            "category": "noisy_short",
+            "description": "Filler ('uh well so') precedes a parental-leave policy question that still retrieves early.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "uh well so what is the policy for parental leave?",
+            "partial_transcripts": [
+                "uh",
+                "uh well",
+                "uh well so what is the policy for parental leave"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "uh",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 2,
+                    "text": "uh well",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 3,
+                    "text": "uh well so what is the policy for parental leave",
+                    "action": "RETRIEVE",
+                    "reason": "stable_intent",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "stable_intent",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": 3,
+            "early_retrieved": true,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-G03",
+            "category": "noisy_short",
+            "description": "Filler ('hmm let's see') precedes an 'what about' additive query that only resolves at the final transcript, not early. Kept as an honest noisy-speech failure case.",
+            "eligible": true,
+            "expected_early_retrieval": true,
+            "expected_final_action": "RETRIEVE",
+            "final_transcript": "hmm let's see okay what about equipment loss reporting",
+            "partial_transcripts": [
+                "hmm",
+                "hmm let's see"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "hmm",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 2,
+                    "text": "hmm let's see",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "RETRIEVE",
+            "final_reason": "additive_refinement",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": null,
+            "early_retrieved": false,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-H01",
+            "category": "nonquery_continuation",
+            "description": "'okay thanks that's helpful' \u2014 closing remark, never a query.",
+            "eligible": false,
+            "expected_early_retrieval": false,
+            "expected_final_action": "WAIT",
+            "final_transcript": "okay thanks that's helpful",
+            "partial_transcripts": [
+                "okay",
+                "okay thanks"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "okay",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                },
+                {
+                    "index": 2,
+                    "text": "okay thanks",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "WAIT",
+            "final_reason": "intent_not_yet_stable",
+            "final_confidence": 0.75,
+            "first_early_retrieve_index": null,
+            "early_retrieved": false,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-H02",
+            "category": "nonquery_continuation",
+            "description": "'fine that works' \u2014 short acknowledgement, never a query.",
+            "eligible": false,
+            "expected_early_retrieval": false,
+            "expected_final_action": "WAIT",
+            "final_transcript": "fine that works",
+            "partial_transcripts": [
+                "fine"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "fine",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "WAIT",
+            "final_reason": "insufficient_query_signal",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": null,
+            "early_retrieved": false,
+            "false_trigger": false,
+            "suppress_count": 0
+        },
+        {
+            "case_id": "G2-H03",
+            "category": "nonquery_continuation",
+            "description": "'sure sounds good' \u2014 short acknowledgement, never a query.",
+            "eligible": false,
+            "expected_early_retrieval": false,
+            "expected_final_action": "WAIT",
+            "final_transcript": "sure sounds good",
+            "partial_transcripts": [
+                "sure"
+            ],
+            "trace": [
+                {
+                    "index": 1,
+                    "text": "sure",
+                    "action": "WAIT",
+                    "reason": "insufficient_query_signal",
+                    "confidence": 0.9
+                }
+            ],
+            "final_action": "WAIT",
+            "final_reason": "insufficient_query_signal",
+            "final_confidence": 0.9,
+            "first_early_retrieve_index": null,
+            "early_retrieved": false,
+            "false_trigger": false,
+            "suppress_count": 0
+        }
+    ],
+    "by_category": {
+        "clear_query": {
+            "total": 3,
+            "eligible": 3,
+            "early_retrieval_cases": 3,
+            "early_retrieval_rate": 1.0,
+            "false_triggers": 0
+        },
+        "correction": {
+            "total": 3,
+            "eligible": 3,
+            "early_retrieval_cases": 3,
+            "early_retrieval_rate": 1.0,
+            "false_triggers": 0
+        },
+        "incomplete_utterance": {
+            "total": 3,
+            "eligible": 3,
+            "early_retrieval_cases": 1,
+            "early_retrieval_rate": 0.3333333333333333,
+            "false_triggers": 0
+        },
+        "late_detail": {
+            "total": 3,
+            "eligible": 3,
+            "early_retrieval_cases": 3,
+            "early_retrieval_rate": 1.0,
+            "false_triggers": 0
+        },
+        "multi_intent": {
+            "total": 3,
+            "eligible": 3,
+            "early_retrieval_cases": 3,
+            "early_retrieval_rate": 1.0,
+            "false_triggers": 0
+        },
+        "noisy_short": {
+            "total": 3,
+            "eligible": 3,
+            "early_retrieval_cases": 2,
+            "early_retrieval_rate": 0.6666666666666666,
+            "false_triggers": 0
+        },
+        "nonquery_continuation": {
+            "total": 3,
+            "eligible": 0,
+            "early_retrieval_cases": 0,
+            "early_retrieval_rate": null,
+            "false_triggers": 0
+        },
+        "presentation_only": {
+            "total": 3,
+            "eligible": 0,
+            "early_retrieval_cases": 0,
+            "early_retrieval_rate": null,
+            "false_triggers": 0
+        }
+    },
+    "first_retrieval_index_histogram": {
+        "1": 8,
+        "2": 4,
+        "3": 3
+    },
+    "reason_counts": {
+        "stable_intent": 15
+    },
+    "wait_reason_counts": {
+        "insufficient_query_signal": 18,
+        "incomplete_transcript": 8
+    },
+    "suppress_count": 1
+}

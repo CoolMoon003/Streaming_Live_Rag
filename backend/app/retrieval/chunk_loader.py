@@ -51,7 +51,9 @@ def load_chunks(chunks_path):
             normalized["chunk_id"] = str(
                 chunk.get("chunk_id") or f"CHUNK_{line_number:04d}"
             )
-            normalized["doc_id"] = str(chunk.get("doc_id") or "UNKNOWN_DOC")
+            normalized["doc_id"] = str(
+                chunk.get("doc_id") or chunk.get("document_id") or "UNKNOWN_DOC"
+            )
             normalized["section"] = str(chunk.get("section") or "General")
             normalized["source"] = str(chunk.get("source") or "unknown")
 

@@ -6,3 +6,6 @@ faiss-cpu
 rank-bm25
 PyMuPDF
 python-dotenv
+fastapi
+uvicorn[standard]
+requests

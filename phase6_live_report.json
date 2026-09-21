@@ -1,0 +1,659 @@
+{
+  "offline": {
+    "corpus": "phase6_chunks.jsonl",
+    "records": 18,
+    "single_intent": 15,
+    "multi_intent": 3,
+    "Recall@1": 1.0,
+    "Recall@3": 1.0,
+    "Recall@5": 1.0,
+    "MRR": 1.0,
+    "mean_latency_ms": 122.42942777730705,
+    "multi_intent_intent_coverage": 1.0,
+    "multi_intent_query_pass_rate": 1.0
+  },
+  "live": {
+    "available": true,
+    "model": "llama3.2:3b",
+    "turns": 18,
+    "answered": 18,
+    "refused": 0,
+    "validator_rejections": 0,
+    "summary": {
+      "turns": 18,
+      "turns_with_generation": 18,
+      "latency_ms": {
+        "ttft_pipeline": {
+          "n": 18,
+          "mean": 7098.049077777735,
+          "median": 5552.677499996207,
+          "max": 13919.59940000379
+        },
+        "ttft_llm_only": {
+          "n": 18,
+          "mean": 6961.662222222223,
+          "median": 5437.27,
+          "max": 13708.52
+        },
+        "pre_generation": {
+          "n": 18,
+          "mean": 136.34702222366792,
+          "median": 125.3043999968213,
+          "max": 211.02069999324158
+        },
+        "llm_generation": {
+          "n": 18,
+          "mean": 10913.913333333334,
+          "median": 8440.355,
+          "max": 26740.53
+        },
+        "server_processing": {
+          "n": 18,
+          "mean": 11050.785561110792,
+          "median": 8557.865849994414,
+          "max": 26947.733600012725
+        }
+      },
+      "cost_per_turn": {
+        "model": "llama3.2:3b",
+        "cloud_api_cost_usd_per_turn": 0.0,
+        "cloud_api_cost_inr_per_turn": 0.0,
+        "cost_basis": "Local Ollama inference: no per-token cloud/API billing, so cloud/API cost per turn is 0. Local compute (electricity, GPU/CPU time) is not free and is NOT monetised here.",
+        "token_usage": {
+          "status": "available",
+          "turns_with_token_counts": 18,
+          "mean_prompt_tokens": 293.3333333333333,
+          "mean_completion_tokens": 55.05555555555556,
+          "mean_total_tokens": 348.3888888888889
+        },
+        "mean_retrieval_calls_per_turn": {
+          "n": 18,
+          "mean": 1.1666666666666667,
+          "median": 1.0,
+          "max": 2
+        }
+      }
+    },
+    "groundedness": {
+      "turns": 18,
+      "turns_scored": 18,
+      "turns_without_claims": 0,
+      "total_claims": 35,
+      "supported_claims": 22,
+      "groundedness_micro": 0.6285714285714286,
+      "groundedness_macro": 0.8333333333333333,
+      "invalid_citation_count": 0
+    },
+    "groundedness_single_intent": {
+      "turns": 15,
+      "turns_scored": 15,
+      "turns_without_claims": 0,
+      "total_claims": 19,
+      "supported_claims": 16,
+      "groundedness_micro": 0.8421052631578947,
+      "groundedness_macro": 0.9222222222222222,
+      "invalid_citation_count": 0
+    },
+    "groundedness_multi_intent": {
+      "turns": 3,
+      "turns_scored": 3,
+      "turns_without_claims": 0,
+      "total_claims": 16,
+      "supported_claims": 6,
+      "groundedness_micro": 0.375,
+      "groundedness_macro": 0.38888888888888884,
+      "invalid_citation_count": 0
+    },
+    "per_turn": [
+      {
+        "id": "P6-Q001",
+        "query": "What approval is required for international business travel?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 8445.35999999789,
+        "pre_generation_ms": 178.83960000472143,
+        "llm_ttft_ms": 8266.47,
+        "llm_generation_ms": 10609.96,
+        "server_processing_ms": 10789.405899995472,
+        "retrieval_calls": 1,
+        "prompt_tokens": 279,
+        "completion_tokens": 34,
+        "total_tokens": 313,
+        "answer": "According to [DOC_TRAVEL_POLICY \u00a72. International Travel], prior approval from the employee's department manager and the finance travel desk is required for international business travel.",
+        "groundedness": {
+          "total_claims": 1,
+          "supported_claims": 1,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q002",
+        "query": "What documents are needed for an international hotel reimbursement claim?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 5819.062900001882,
+        "pre_generation_ms": 143.4025000053225,
+        "llm_ttft_ms": 5675.62,
+        "llm_generation_ms": 9903.39,
+        "server_processing_ms": 10047.349500004202,
+        "retrieval_calls": 1,
+        "prompt_tokens": 248,
+        "completion_tokens": 58,
+        "total_tokens": 306,
+        "answer": "According to the provided evidence, the documents needed for an international hotel reimbursement claim are:\n\n1. Hotel invoice\n2. Proof of payment\n\nThese documents must be included to support the claim, as stated in [DOC_EXPENSE_REIMBURSEMENT_POLICY \u00a72. International Expenses].",
+        "groundedness": {
+          "total_claims": 3,
+          "supported_claims": 1,
+          "unsupported_claims": 2,
+          "groundedness": 0.3333333333333333,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": [
+            "Hotel invoice",
+            "Proof of payment"
+          ]
+        }
+      },
+      {
+        "id": "P6-Q003",
+        "query": "How long do I have to submit an expense claim?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 5401.688600002672,
+        "pre_generation_ms": 127.48799999826588,
+        "llm_ttft_ms": 5274.17,
+        "llm_generation_ms": 7607.61,
+        "server_processing_ms": 7735.550400000648,
+        "retrieval_calls": 1,
+        "prompt_tokens": 242,
+        "completion_tokens": 34,
+        "total_tokens": 276,
+        "answer": "You have 30 days to submit an expense claim, as stated in the policy: [DOC_EXPENSE_REIMBURSEMENT_POLICY \u00a73. Submission Deadline].",
+        "groundedness": {
+          "total_claims": 1,
+          "supported_claims": 1,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q004",
+        "query": "What are the cancellation terms for a workshop venue?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 5597.5552999880165,
+        "pre_generation_ms": 110.20019999705255,
+        "llm_ttft_ms": 5487.32,
+        "llm_generation_ms": 7538.03,
+        "server_processing_ms": 7648.732099987683,
+        "retrieval_calls": 1,
+        "prompt_tokens": 243,
+        "completion_tokens": 30,
+        "total_tokens": 273,
+        "answer": "The cancellation terms for a workshop venue depend on the supplier agreement, as stated in [DOC_WORKSHOP_EVENT_POLICY \u00a72. Venue Cancellation].",
+        "groundedness": {
+          "total_claims": 1,
+          "supported_claims": 1,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q005",
+        "query": "What catering arrangements are allowed for workshops?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 5245.433900010539,
+        "pre_generation_ms": 100.45140000875108,
+        "llm_ttft_ms": 5144.95,
+        "llm_generation_ms": 7596.53,
+        "server_processing_ms": 7697.558500003652,
+        "retrieval_calls": 1,
+        "prompt_tokens": 234,
+        "completion_tokens": 36,
+        "total_tokens": 270,
+        "answer": "According to the provided evidence, approved catering arrangements for workshops may include meals, refreshments, and dietary alternatives for participants [DOC_WORKSHOP_EVENT_POLICY \u00a73. Catering].",
+        "groundedness": {
+          "total_claims": 1,
+          "supported_claims": 1,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q006",
+        "query": "What rules apply when an employee travels within the country?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 5507.799700004398,
+        "pre_generation_ms": 120.5439000041224,
+        "llm_ttft_ms": 5387.22,
+        "llm_generation_ms": 8838.93,
+        "server_processing_ms": 8959.985299996333,
+        "retrieval_calls": 1,
+        "prompt_tokens": 237,
+        "completion_tokens": 49,
+        "total_tokens": 286,
+        "answer": "According to [DOC_TRAVEL_POLICY \u00a71. Domestic Travel], when an employee travels within the country, they may claim eligible transportation and accommodation expenses when the trip is approved for business purposes, and domestic travel normally requires manager approval before booking.",
+        "groundedness": {
+          "total_claims": 1,
+          "supported_claims": 1,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q007",
+        "query": "What approval is required for external training or certification?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 5127.582000000984,
+        "pre_generation_ms": 115.12190000212286,
+        "llm_ttft_ms": 5012.43,
+        "llm_generation_ms": 7278.62,
+        "server_processing_ms": 7394.2429000017,
+        "retrieval_calls": 1,
+        "prompt_tokens": 223,
+        "completion_tokens": 34,
+        "total_tokens": 257,
+        "answer": "According to the provided evidence, manager approval is required for external training or paid certification programs before registration. [DOC_TRAINING_CERTIFICATION_POLICY \u00a72. Manager Approval]",
+        "groundedness": {
+          "total_claims": 1,
+          "supported_claims": 1,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q008",
+        "query": "What proof is needed to claim certification reimbursement?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 7032.799099994008,
+        "pre_generation_ms": 142.75300000736024,
+        "llm_ttft_ms": 6890.01,
+        "llm_generation_ms": 9681.58,
+        "server_processing_ms": 9824.814399995375,
+        "retrieval_calls": 1,
+        "prompt_tokens": 305,
+        "completion_tokens": 40,
+        "total_tokens": 345,
+        "answer": "To claim certification reimbursement, the required proof is the submission of approved certification fees and the required supporting documents, as stated in [DOC_TRAINING_CERTIFICATION_POLICY \u00a73. Certification Reimbursement].",
+        "groundedness": {
+          "total_claims": 1,
+          "supported_claims": 1,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q009",
+        "query": "What should I do if my company laptop is stolen?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 5343.6786999955075,
+        "pre_generation_ms": 113.52339999575634,
+        "llm_ttft_ms": 5230.13,
+        "llm_generation_ms": 8041.78,
+        "server_processing_ms": 8155.746399992495,
+        "retrieval_calls": 1,
+        "prompt_tokens": 231,
+        "completion_tokens": 41,
+        "total_tokens": 272,
+        "answer": "If your company laptop is stolen, report it promptly to the IT service desk and your manager, as stated in the company's asset policy [DOC_IT_ASSET_POLICY \u00a74. Loss or Theft].",
+        "groundedness": {
+          "total_claims": 1,
+          "supported_claims": 1,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q010",
+        "query": "What should employees do about suspicious phishing emails?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 5294.98269999749,
+        "pre_generation_ms": 102.02609999396373,
+        "llm_ttft_ms": 5192.92,
+        "llm_generation_ms": 7335.94,
+        "server_processing_ms": 7438.411600000109,
+        "retrieval_calls": 1,
+        "prompt_tokens": 227,
+        "completion_tokens": 31,
+        "total_tokens": 258,
+        "answer": "According to the provided evidence, employees should report suspicious phishing emails through the company's security reporting process [DOC_INFORMATION_SECURITY_POLICY \u00a74. Phishing].",
+        "groundedness": {
+          "total_claims": 1,
+          "supported_claims": 1,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q011",
+        "query": "How should personal data be handled and retained?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 6319.463199994061,
+        "pre_generation_ms": 121.92930000310298,
+        "llm_ttft_ms": 6197.5,
+        "llm_generation_ms": 11266.67,
+        "server_processing_ms": 11389.076499996008,
+        "retrieval_calls": 1,
+        "prompt_tokens": 271,
+        "completion_tokens": 70,
+        "total_tokens": 341,
+        "answer": "According to the provided evidence, personal data should be handled by collecting and processing it only for legitimate and authorized business purposes [DOC_DATA_PRIVACY_POLICY \u00a71. Personal Data]. Additionally, personal data should be retained no longer than required by the applicable business, legal, or regulatory requirement [DOC_DATA_PRIVACY_POLICY \u00a74. Data Retention].",
+        "groundedness": {
+          "total_claims": 2,
+          "supported_claims": 2,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q012",
+        "query": "What is required before buying goods for the company?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 5293.10070000065,
+        "pre_generation_ms": 128.53730001370423,
+        "llm_ttft_ms": 5164.53,
+        "llm_generation_ms": 7145.9,
+        "server_processing_ms": 7274.969800011604,
+        "retrieval_calls": 1,
+        "prompt_tokens": 226,
+        "completion_tokens": 30,
+        "total_tokens": 256,
+        "answer": "According to the evidence, before buying goods for the company, employees must submit a purchase request [DOC_PROCUREMENT_POLICY \u00a71. Purchase Requests].",
+        "groundedness": {
+          "total_claims": 1,
+          "supported_claims": 1,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q013",
+        "query": "Who approves regular remote work?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 5104.644100007135,
+        "pre_generation_ms": 126.95869999879505,
+        "llm_ttft_ms": 4977.65,
+        "llm_generation_ms": 7045.43,
+        "server_processing_ms": 7172.885599997244,
+        "retrieval_calls": 1,
+        "prompt_tokens": 225,
+        "completion_tokens": 31,
+        "total_tokens": 256,
+        "answer": "According to the provided evidence, regular remote work arrangements require manager approval. This is stated in [DOC_REMOTE_WORK_POLICY \u00a72. Remote Work Approval].",
+        "groundedness": {
+          "total_claims": 2,
+          "supported_claims": 1,
+          "unsupported_claims": 1,
+          "groundedness": 0.5,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": [
+            "According to the provided evidence, regular remote work arrangements require manager approval."
+          ]
+        }
+      },
+      {
+        "id": "P6-Q014",
+        "query": "What documents are required for relocation claims?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 4963.515399998869,
+        "pre_generation_ms": 118.14109999977518,
+        "llm_ttft_ms": 4845.34,
+        "llm_generation_ms": 6606.64,
+        "server_processing_ms": 6725.292500006617,
+        "retrieval_calls": 1,
+        "prompt_tokens": 218,
+        "completion_tokens": 27,
+        "total_tokens": 245,
+        "answer": "The documents required for relocation claims are receipts and other supporting documents, as stated in [DOC_RELOCATION_POLICY \u00a75. Documentation].",
+        "groundedness": {
+          "total_claims": 1,
+          "supported_claims": 1,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q015",
+        "query": "How should a workplace incident be reported?",
+        "multi_intent": false,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 7655.432100000326,
+        "pre_generation_ms": 123.65009999484755,
+        "llm_ttft_ms": 7531.74,
+        "llm_generation_ms": 11931.71,
+        "server_processing_ms": 12055.84829999134,
+        "retrieval_calls": 1,
+        "prompt_tokens": 332,
+        "completion_tokens": 62,
+        "total_tokens": 394,
+        "answer": "According to the evidence, a workplace incident should be reported through the applicable reporting process (Evidence 1 [DOC_INCIDENT_REPORTING_POLICY \u00a71. Reportable Incidents]) or to the responsible facilities or safety contact (Evidence 2 [DOC_INCIDENT_REPORTING_POLICY \u00a74. Workplace Incidents]).",
+        "groundedness": {
+          "total_claims": 1,
+          "supported_claims": 1,
+          "unsupported_claims": 0,
+          "groundedness": 1.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": []
+        }
+      },
+      {
+        "id": "P6-Q016",
+        "query": "What approval is needed for international travel and what documentation is needed for reimbursement?",
+        "multi_intent": true,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 13919.59940000379,
+        "pre_generation_ms": 211.02069999324158,
+        "llm_ttft_ms": 13708.52,
+        "llm_generation_ms": 23796.68,
+        "server_processing_ms": 24008.35079999524,
+        "retrieval_calls": 2,
+        "prompt_tokens": 516,
+        "completion_tokens": 134,
+        "total_tokens": 650,
+        "answer": "Here are the answers to the user's question, following the strict grounding rules:\n\nIntent 1: What approval is needed for international travel?\nIntent 1: Approval for international travel is required from the employee's department manager and the finance travel desk, and must be obtained prior to purchasing international tickets [DOC_TRAVEL_POLICY \u00a72. International Travel].\n\nIntent 2: what documentation is needed for reimbursement?\nIntent 2: Receipts or equivalent proof of purchase are required for reimbursable expenses above the applicable receipt threshold, and missing receipts should be accompanied by a declaration explaining the circumstances [DOC_EXPENSE_REIMBURSEMENT_POLICY \u00a74. Receipts].",
+        "groundedness": {
+          "total_claims": 4,
+          "supported_claims": 2,
+          "unsupported_claims": 2,
+          "groundedness": 0.5,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": [
+            "What approval is needed for international travel?",
+            "what documentation is needed for reimbursement?"
+          ],
+          "per_intent": [
+            {
+              "intent_id": 1,
+              "intent_supported": true,
+              "total_claims": 2,
+              "supported_claims": 1,
+              "groundedness": 0.5
+            },
+            {
+              "intent_id": 2,
+              "intent_supported": true,
+              "total_claims": 2,
+              "supported_claims": 1,
+              "groundedness": 0.5
+            }
+          ]
+        }
+      },
+      {
+        "id": "P6-Q017",
+        "query": "What approval is needed for a workshop and what catering arrangements are allowed?",
+        "multi_intent": true,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 12148.708399996394,
+        "pre_generation_ms": 163.11739999218844,
+        "llm_ttft_ms": 11985.52,
+        "llm_generation_ms": 17484.51,
+        "server_processing_ms": 17648.186000005808,
+        "retrieval_calls": 2,
+        "prompt_tokens": 487,
+        "completion_tokens": 75,
+        "total_tokens": 562,
+        "answer": "Intent 1: What approval is needed for a workshop?\nInternal workshops require approval from the responsible department before venue or service commitments are made. External events may require additional procurement review.\n\nIntent 2: what catering arrangements are allowed?\nCatering arrangements should reflect the expected attendance and event duration. Approved catering may include meals, refreshments, and dietary alternatives for participants.",
+        "groundedness": {
+          "total_claims": 6,
+          "supported_claims": 0,
+          "unsupported_claims": 6,
+          "groundedness": 0.0,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": [
+            "What approval is needed for a workshop?",
+            "Internal workshops require approval from the responsible department before venue or service commitments are made.",
+            "External events may require additional procurement review."
+          ],
+          "per_intent": [
+            {
+              "intent_id": 1,
+              "intent_supported": true,
+              "total_claims": 3,
+              "supported_claims": 0,
+              "groundedness": 0.0
+            },
+            {
+              "intent_id": 2,
+              "intent_supported": true,
+              "total_claims": 3,
+              "supported_claims": 0,
+              "groundedness": 0.0
+            }
+          ]
+        }
+      },
+      {
+        "id": "P6-Q018",
+        "query": "What happens if company equipment is lost and how should the incident be reported?",
+        "multi_intent": true,
+        "outcome": "answered",
+        "generated": true,
+        "citation_valid": true,
+        "ttft_ms": 13544.477200004621,
+        "pre_generation_ms": 206.54180001292843,
+        "llm_ttft_ms": 13337.88,
+        "llm_generation_ms": 26740.53,
+        "server_processing_ms": 26947.733600012725,
+        "retrieval_calls": 2,
+        "prompt_tokens": 536,
+        "completion_tokens": 175,
+        "total_tokens": 711,
+        "answer": "Here are the answers to the user's question, following the strict grounding rules:\n\nIntent 1: What happens if company equipment is lost?\nLost or stolen company equipment must be reported promptly to the IT service desk and the employee's manager. [DOC_IT_ASSET_POLICY \u00a74. Loss or Theft]\n\nIntent 2: how should the incident be reported?\nAccidental damage should be reported to IT with a description of the incident so that repair or replacement can be assessed. [DOC_IT_ASSET_POLICY \u00a76. Damaged Equipment]\nSuspected unauthorized disclosure or loss of personal data should be reported through the privacy incident process. [DOC_DATA_PRIVACY_POLICY \u00a76. Privacy Incidents]\nSuspected security incidents should be reported promptly to the security or IT response team so that containment and investigation can begin. [DOC_INFORMATION_SECURITY_POLICY \u00a76. Security Incidents]",
+        "groundedness": {
+          "total_claims": 6,
+          "supported_claims": 4,
+          "unsupported_claims": 2,
+          "groundedness": 0.6666666666666666,
+          "abstention_units": 0,
+          "invalid_citations": [],
+          "unsupported_examples": [
+            "What happens if company equipment is lost?",
+            "how should the incident be reported?"
+          ],
+          "per_intent": [
+            {
+              "intent_id": 1,
+              "intent_supported": true,
+              "total_claims": 2,
+              "supported_claims": 1,
+              "groundedness": 0.5
+            },
+            {
+              "intent_id": 2,
+              "intent_supported": true,
+              "total_claims": 4,
+              "supported_claims": 3,
+              "groundedness": 0.75
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

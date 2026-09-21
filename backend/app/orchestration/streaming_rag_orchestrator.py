@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timezone
 from typing import Any, AsyncGenerator
 
 from backend.app.models.session import (
@@ -92,6 +93,107 @@ class StreamingRagOrchestrator:
         self.citation_validator = CitationValidator()
 
     # =========================================================================
+    # G6 TELEMETRY (observational only - never influences any decision)
+    # =========================================================================
+
+    # Commit-turn events that carry the per-turn retrieval/token accounting.
+    _TURN_EVENTS = frozenset(
+        {"answer_started", "uncertainty_emitted", "answer_completed"}
+    )
+    # Partial-stage events that represent one early retrieval operation.
+    _EARLY_RETRIEVAL_EVENTS = frozenset(
+        {"retrieval_update", "retrieval_stale"}
+    )
+
+    @staticmethod
+    def _token_accounting(metrics: Any) -> tuple[dict[str, Any], str]:
+        """
+        Split an LLM client metrics dict into (token_metrics, reason).
+
+        Values are copied exactly as the client reported them; a count the
+        client did not report stays None. Nothing is ever estimated.
+        """
+        metrics = metrics if isinstance(metrics, dict) else {}
+
+        prompt = metrics.get("prompt_tokens")
+        completion = metrics.get("completion_tokens")
+        total = metrics.get("total_tokens")
+
+        token_metrics = {
+            "prompt_tokens": prompt,
+            "completion_tokens": completion,
+            "total_tokens": total,
+            "llm_ttft_ms": metrics.get("ttft_ms"),
+            "llm_generation_ms": metrics.get("latency_ms"),
+        }
+
+        reported = all(
+            isinstance(value, int) and not isinstance(value, bool)
+            for value in (prompt, completion, total)
+        )
+
+        return token_metrics, (
+            "reported" if reported else "ollama_did_not_report_tokens"
+        )
+
+    def _trace_envelope(
+        self,
+        session: SessionState,
+        event: dict[str, Any],
+        *,
+        stage: str,
+        turn: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Wrap an orchestrator event with structured trace metadata.
+
+        Only ADDS keys (fields the event already sets are never overwritten),
+        and only carries IDs / counts / scalars - never evidence text.
+        `turn` is the per-commit accounting the commit flow collected
+        (retrieval reuse mode, retrieval call count, LLM token metrics).
+        """
+        traced = dict(event)
+        kind = traced.get("event")
+
+        traced.setdefault("session_id", getattr(session, "session_id", None))
+        traced.setdefault(
+            "timestamp",
+            datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+        )
+        traced.setdefault("stage", stage)
+        traced.setdefault("query_version", getattr(session, "query_version", None))
+        traced.setdefault(
+            "generation_id", getattr(session, "active_generation_id", None)
+        )
+        traced.setdefault("answer_version", getattr(session, "answer_version", None))
+
+        if stage == "partial":
+            is_early = kind in self._EARLY_RETRIEVAL_EVENTS
+            traced.setdefault(
+                "retrieval_calls_this_turn", 1 if is_early else 0
+            )
+            if is_early:
+                traced.setdefault("retrieval_reuse_mode", "early_retrieval")
+
+        elif turn and kind in self._TURN_EVENTS:
+            for key in (
+                "retrieval_reuse_mode",
+                "retrieval_reuse_reason",
+                "retrieval_calls_this_turn",
+            ):
+                if key in turn:
+                    traced.setdefault(key, turn[key])
+
+            if kind in ("uncertainty_emitted", "answer_completed"):
+                # None + an explicit reason for turns that made no LLM call.
+                traced.setdefault("token_metrics", turn.get("token_metrics"))
+                traced.setdefault(
+                    "token_metrics_reason", turn.get("token_metrics_reason")
+                )
+
+        return traced
+
+    # =========================================================================
     # PARTIAL TRANSCRIPT FLOW
     # =========================================================================
 
@@ -106,6 +208,14 @@ class StreamingRagOrchestrator:
         Decides whether to WAIT, SUPPRESS, or initiate EARLY RETRIEVAL.
         Does NOT invoke the LLM generator.
         """
+        event = await self._process_partial_core(session, transcript_text)
+        return self._trace_envelope(session, event, stage="partial")
+
+    async def _process_partial_core(
+        self,
+        session: SessionState,
+        transcript_text: str,
+    ) -> dict[str, Any]:
         text = transcript_text.strip()
 
         decision = self.controller.decide(
@@ -227,7 +337,34 @@ class StreamingRagOrchestrator:
         Reuses early retrieval when valid, selects evidence, gates sufficiency,
         and streams the grounded answer token-by-token.
         """
+        # `turn` is filled by the core flow with observational per-turn
+        # accounting (retrieval mode/calls, LLM tokens) and read only by the
+        # trace envelope.
+        turn: dict[str, Any] = {}
+
+        async for event in self._process_commit_core(
+            session, transcript_text, turn
+        ):
+            yield self._trace_envelope(
+                session, event, stage="commit", turn=turn
+            )
+
+    async def _process_commit_core(
+        self,
+        session: SessionState,
+        transcript_text: str,
+        turn: dict[str, Any],
+    ) -> AsyncGenerator[dict[str, Any], None]:
         text = transcript_text.strip()
+
+        session.token_metrics = {}
+        turn.update(
+            retrieval_reuse_mode=None,
+            retrieval_reuse_reason=None,
+            retrieval_calls_this_turn=0,
+            token_metrics=None,
+            token_metrics_reason=None,
+        )
 
         # -------------------------------------------------------------
         # 1. Analyze Refinement Intent
@@ -249,6 +386,14 @@ class StreamingRagOrchestrator:
         # 2. Handle PRESENTATION Refinement (No retrieval needed)
         # -------------------------------------------------------------
         if refinement_type == RefinementType.PRESENTATION:
+            turn.update(
+                retrieval_reuse_mode="presentation_none",
+                retrieval_reuse_reason="presentation_refinement",
+                retrieval_calls_this_turn=0,
+                token_metrics=None,
+                token_metrics_reason="no_llm_call_presentation_reuse",
+            )
+
             yield {
                 "event": "answer_started",
                 "action": "SUPPRESS",
@@ -299,6 +444,12 @@ class StreamingRagOrchestrator:
             active_query = refinement["contextual_query"]
             evidence = refinement["merged_results"]
 
+            turn.update(
+                retrieval_reuse_mode="additive",
+                retrieval_reuse_reason="additive_refinement_merge",
+                retrieval_calls_this_turn=1,
+            )
+
             session.accept_results(
                 generation_id=generation_id,
                 query=text,
@@ -316,6 +467,12 @@ class StreamingRagOrchestrator:
             clean_query = query_info["query"]
             active_query = clean_query
             generation_id = session.start_new_query(clean_query)
+
+            turn.update(
+                retrieval_reuse_mode="replacement",
+                retrieval_reuse_reason="replacement_refinement",
+                retrieval_calls_this_turn=1,
+            )
 
             # Check multi-intent on replacement
             multi_dec = self.multi_intent_detector.detect(clean_query)
@@ -360,6 +517,12 @@ class StreamingRagOrchestrator:
                 generation_id = reuse.retrieval.generation_id
                 evidence = reuse.retrieval.results
 
+                turn.update(
+                    retrieval_reuse_mode="exact",
+                    retrieval_reuse_reason=reuse.reason,
+                    retrieval_calls_this_turn=0,
+                )
+
                 # IMPORTANT:
                 # Recover the per-intent structure saved during early retrieval.
                 intent_results = reuse.retrieval.intent_results
@@ -387,8 +550,20 @@ class StreamingRagOrchestrator:
                         early_evidence,
                         delta_res["results"]["reranked_results"],
                     )
+
+                    turn.update(
+                        retrieval_reuse_mode="extension_delta",
+                        retrieval_reuse_reason=reuse.reason,
+                        retrieval_calls_this_turn=1,
+                    )
                 else:
                     evidence = early_evidence
+
+                    turn.update(
+                        retrieval_reuse_mode="extension",
+                        retrieval_reuse_reason=reuse.reason,
+                        retrieval_calls_this_turn=0,
+                    )
 
                 session.accept_results(
                     generation_id=generation_id,
@@ -400,6 +575,12 @@ class StreamingRagOrchestrator:
             else:
                 generation_id = session.start_new_query(text)
                 multi_dec = self.multi_intent_detector.detect(text)
+
+                turn.update(
+                    retrieval_reuse_mode="new",
+                    retrieval_reuse_reason=reuse.reason,
+                    retrieval_calls_this_turn=1,
+                )
 
                 if multi_dec.is_multi_intent:
                     subqueries = self.multi_intent_decomposer.decompose(text)
@@ -571,6 +752,11 @@ class StreamingRagOrchestrator:
                 citations=[],
             )
 
+            turn.update(
+                token_metrics=None,
+                token_metrics_reason="no_llm_call_evidence_insufficient",
+            )
+
             yield {
                 "event": "uncertainty_emitted",
                 "action": "ANSWER",
@@ -652,13 +838,25 @@ class StreamingRagOrchestrator:
         # 7. Citation Validation & State Preservation
         # -------------------------------------------------------------
         if is_multi_intent:
-            # The per-intent generator prompt is far harder for a small
-            # local model to follow verbatim than the single-intent one,
-            # so citation recovery is grounded in each intent's own
-            # selected/gated evidence rather than requiring the model to
-            # echo the exact bracket marker back in its prose.
+            # Repair uncited verbatim sentences BEFORE validation.
+            # attribute_sentences() is idempotent and per-intent only;
+            # it never invents IDs or crosses intent boundaries.
+            # Unsupported intents are forced to the deterministic
+            # abstention sentence first, so an uncited or borrowed claim
+            # the LLM wrote for them never reaches the final answer.
+            enforced_answer = (
+                self.citation_validator.enforce_unsupported_intents(
+                    answer=full_answer,
+                    intent_results=multi_intent_payload,
+                    insufficiency_msg=self.generator.INTENT_INSUFFICIENT_MSG,
+                )
+            )
+            attributed_answer = self.citation_validator.attribute_sentences(
+                answer=enforced_answer,
+                intent_results=multi_intent_payload,
+            )
             citation_check = self.citation_validator.validate_multi_intent(
-                answer=full_answer,
+                answer=attributed_answer,
                 intents=multi_intent_payload,
             )
         else:
@@ -674,7 +872,9 @@ class StreamingRagOrchestrator:
             )
             valid_citations = []
         else:
-            final_answer = full_answer
+            # For multi-intent, use the attributed answer (citations repaired);
+            # for single-intent, full_answer already has the model's own citations.
+            final_answer = attributed_answer if is_multi_intent else full_answer
             valid_citations = citation_check["valid_citations"]
 
         answer_state = session.save_answer(
@@ -684,6 +884,14 @@ class StreamingRagOrchestrator:
         )
 
         metrics = self.llm_client.get_last_metrics()
+
+        # G6: expose exactly what the LLM client reported (never estimated).
+        token_metrics, token_reason = self._token_accounting(metrics)
+        session.token_metrics = dict(token_metrics)
+        turn.update(
+            token_metrics=token_metrics,
+            token_metrics_reason=token_reason,
+        )
 
         yield {
             "event": "answer_completed",

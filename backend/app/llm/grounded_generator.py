@@ -154,6 +154,7 @@ ANSWER:
         """
         intent_blocks = []
         allowed_citations: list[str] = []
+        skeleton_lines = []
 
         for intent in intents:
             intent_id = intent.get("intent_id")
@@ -164,6 +165,9 @@ ANSWER:
             header = f"INTENT {intent_id}: {subquery}"
 
             if not supported:
+                skeleton_lines.append(
+                    f"Intent {intent_id}: {self.INTENT_INSUFFICIENT_MSG}"
+                )
                 intent_blocks.append(
                     f"{header}\n"
                     f"EVIDENCE FOR INTENT {intent_id}: NONE\n"
@@ -174,6 +178,7 @@ ANSWER:
                 continue
 
             evidence_lines = []
+            intent_citations: list[str] = []
 
             for index, result in enumerate(evidence, start=1):
                 chunk = result["chunk"]
@@ -182,45 +187,56 @@ ANSWER:
                 if citation not in allowed_citations:
                     allowed_citations.append(citation)
 
+                if citation not in intent_citations:
+                    intent_citations.append(citation)
+
                 evidence_lines.append(
                     f"Evidence {intent_id}.{index} {citation}:\n{chunk['text']}"
                 )
+
+            skeleton_lines.append(
+                f"Intent {intent_id}: <1-3 short sentences answering this "
+                f"intent only, each ending with {intent_citations[0]}>"
+            )
 
             intent_blocks.append(
                 f"{header}\n"
                 f"EVIDENCE FOR INTENT {intent_id}:\n"
                 + "\n\n".join(evidence_lines)
+                + f"\nCITATIONS FOR INTENT {intent_id} "
+                f"(copy exactly, use only these): "
+                + " ".join(intent_citations)
             )
 
         context = "\n\n".join(intent_blocks)
-        citations_list_str = ", ".join(allowed_citations) if allowed_citations else "(none)"
 
         intent_labels = "\n".join(
             f"Intent {intent.get('intent_id')}: {intent.get('query', '')}"
             for intent in intents
         )
+        output_format = "\n".join(skeleton_lines)
+        intent_count = len(intents)
 
         prompt = f"""You are a strict corpus-grounded assistant.
 
 The user asked a question containing MULTIPLE separate intents.
 You must answer EVERY intent listed below. Answering only one is a failure.
 
-DETECTED INTENTS:
+DETECTED INTENTS ({intent_count}):
 {intent_labels}
 
-Strict Grounding Rules:
-1. Produce one labelled section per intent, in order, formatted exactly as:
-   Intent <N>: <answer for that intent>
-2. Answer each intent using ONLY the evidence listed under that same intent.
-   Do not answer an intent using another intent's evidence.
-3. Do not use outside knowledge or extrapolate beyond the provided text.
-4. Every factual claim MUST end with an exact citation from the ALLOWED CITATIONS list.
-5. Citation format: [DOC_ID §Section]
-6. Allowed Citations: {citations_list_str}
-7. NEVER invent document IDs, sections, or numbers not explicitly in the evidence.
-8. If an intent is marked as having NO evidence, write exactly the required
-   text given for it and nothing else for that intent.
-9. Keep each intent's answer concise, accurate, and direct.
+OUTPUT FORMAT - exactly {intent_count} sections, in this order, each on its own line(s):
+{output_format}
+
+RULES:
+1. Write one section per intent, in the order above, each starting with "Intent <N>:". Never skip an intent and never merge two intents into one section.
+2. Answer each intent using ONLY the evidence under that same intent. Never use another intent's evidence.
+3. Keep each section to 1-3 short sentences or bullets. State only the facts needed; do not copy the evidence text.
+4. Every factual sentence must end with a citation in the format [DOC_ID §Section], copied exactly from that intent's CITATIONS line. Every intent that has evidence must contain at least one citation.
+5. For an intent marked NO evidence, write exactly its required text, with no citation and nothing else.
+6. Never use outside knowledge. Never invent document IDs, sections, numbers or citations.
+7. Write nothing before the first section or after the last section: no introduction, conclusion, summary, or comment about other intents.
+Before answering, silently check that you wrote {intent_count} sections, that each supported intent has a citation, and that every citation belongs to that intent's own evidence. Never write this check in your answer.
 
 USER QUESTION:
 {query}

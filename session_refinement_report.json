@@ -1,0 +1,412 @@
+{
+    "cases": [
+        {
+            "case_id": "G5-01",
+            "category": "exact_reuse",
+            "initial_query": "What are the international travel approval rules",
+            "refinement_query": "",
+            "final_query": "What are the international travel approval rules",
+            "expected_refinement_type": "NEW",
+            "actual_refinement_type": "NEW",
+            "expected_retrieval_behavior": "reuse_exact",
+            "actual_retrieval_behavior": "reuse_exact",
+            "retrieval_calls": 0,
+            "generation_ids": [
+                1,
+                1
+            ],
+            "answer_versions": [
+                1
+            ],
+            "initial_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "final_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "preserved_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "newly_added_chunk_ids": [],
+            "duplicate_chunk_ids": [],
+            "state_continuous": true,
+            "answer_version_progression_ok": true,
+            "passed": true,
+            "notes": ""
+        },
+        {
+            "case_id": "G5-02",
+            "category": "extension_tail_already_covered",
+            "initial_query": "What are the international travel approval rules",
+            "refinement_query": "",
+            "final_query": "What are the international travel approval rules for the whole team",
+            "expected_refinement_type": "NEW",
+            "actual_refinement_type": "NEW",
+            "expected_retrieval_behavior": "reuse_extension_no_delta",
+            "actual_retrieval_behavior": "reuse_extension_no_delta",
+            "retrieval_calls": 0,
+            "generation_ids": [],
+            "answer_versions": [
+                1
+            ],
+            "initial_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "final_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "preserved_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "newly_added_chunk_ids": [],
+            "duplicate_chunk_ids": [],
+            "state_continuous": true,
+            "answer_version_progression_ok": true,
+            "passed": true,
+            "notes": ""
+        },
+        {
+            "case_id": "G5-03",
+            "category": "extension_requires_new_retrieval",
+            "initial_query": "What are the international travel approval rules",
+            "refinement_query": "",
+            "final_query": "What are the international travel approval rules and workshop catering arrangements",
+            "expected_refinement_type": "NEW",
+            "actual_refinement_type": "NEW",
+            "expected_retrieval_behavior": "reuse_extension_with_delta",
+            "actual_retrieval_behavior": "reuse_extension_with_delta",
+            "retrieval_calls": 1,
+            "generation_ids": [],
+            "answer_versions": [
+                1
+            ],
+            "initial_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "final_chunk_ids": [
+                "T_C002",
+                "T_C003",
+                "W_C001"
+            ],
+            "preserved_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "newly_added_chunk_ids": [
+                "W_C001"
+            ],
+            "duplicate_chunk_ids": [],
+            "state_continuous": true,
+            "answer_version_progression_ok": true,
+            "passed": true,
+            "notes": ""
+        },
+        {
+            "case_id": "G5-04",
+            "category": "additive_refinement_after_answer",
+            "initial_query": "What are the international travel approval rules",
+            "refinement_query": "Also what about reimbursement claims for these trips",
+            "final_query": "",
+            "expected_refinement_type": "ADDITIVE",
+            "actual_refinement_type": "ADDITIVE",
+            "expected_retrieval_behavior": "contextual_merge_retrieval",
+            "actual_retrieval_behavior": "contextual_merge_retrieval",
+            "retrieval_calls": 1,
+            "generation_ids": [
+                1,
+                2
+            ],
+            "answer_versions": [
+                1,
+                2
+            ],
+            "initial_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "final_chunk_ids": [
+                "T_C002",
+                "T_C003",
+                "R_C001",
+                "R_C002"
+            ],
+            "preserved_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "newly_added_chunk_ids": [
+                "R_C001",
+                "R_C002"
+            ],
+            "duplicate_chunk_ids": [],
+            "state_continuous": true,
+            "answer_version_progression_ok": true,
+            "passed": true,
+            "notes": ""
+        },
+        {
+            "case_id": "G5-05",
+            "category": "multi_step_refinement_v1_v2_v3",
+            "initial_query": "What are the international travel approval rules",
+            "refinement_query": "Also what about reimbursement claims for these trips | Also what about workshop catering arrangements",
+            "final_query": "",
+            "expected_refinement_type": "ADDITIVE,ADDITIVE",
+            "actual_refinement_type": "ADDITIVE,ADDITIVE",
+            "expected_retrieval_behavior": "contextual_merge_retrieval_x2",
+            "actual_retrieval_behavior": "contextual_merge_retrieval_x2",
+            "retrieval_calls": 0,
+            "generation_ids": [
+                1,
+                2,
+                3
+            ],
+            "answer_versions": [
+                1,
+                2,
+                3
+            ],
+            "initial_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "final_chunk_ids": [
+                "T_C002",
+                "T_C003",
+                "W_C001",
+                "R_C001",
+                "R_C002"
+            ],
+            "preserved_chunk_ids": [
+                "T_C002",
+                "T_C003",
+                "R_C001",
+                "R_C002"
+            ],
+            "newly_added_chunk_ids": [
+                "W_C001"
+            ],
+            "duplicate_chunk_ids": [],
+            "state_continuous": true,
+            "answer_version_progression_ok": true,
+            "passed": true,
+            "notes": ""
+        },
+        {
+            "case_id": "G5-06",
+            "category": "replacement_refinement",
+            "initial_query": "What are the international travel approval rules",
+            "refinement_query": "No, I meant reimbursement claims for business trips",
+            "final_query": "",
+            "expected_refinement_type": "REPLACEMENT",
+            "actual_refinement_type": "REPLACEMENT",
+            "expected_retrieval_behavior": "fresh_retrieval_no_merge",
+            "actual_retrieval_behavior": "fresh_retrieval_no_merge",
+            "retrieval_calls": 1,
+            "generation_ids": [
+                1,
+                2
+            ],
+            "answer_versions": [
+                1,
+                2
+            ],
+            "initial_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "final_chunk_ids": [
+                "R_C001",
+                "R_C002"
+            ],
+            "preserved_chunk_ids": [],
+            "newly_added_chunk_ids": [
+                "R_C001",
+                "R_C002"
+            ],
+            "duplicate_chunk_ids": [],
+            "state_continuous": true,
+            "answer_version_progression_ok": true,
+            "passed": true,
+            "notes": "REPLACEMENT is expected to discard prior evidence; empty preserved_chunk_ids is a PASS signal here."
+        },
+        {
+            "case_id": "G5-07",
+            "category": "presentation_only_turn",
+            "initial_query": "What are the international travel approval rules",
+            "refinement_query": "Repeat that in two bullets",
+            "final_query": "",
+            "expected_refinement_type": "PRESENTATION",
+            "actual_refinement_type": "PRESENTATION",
+            "expected_retrieval_behavior": "suppressed_no_retrieval",
+            "actual_retrieval_behavior": "suppressed_no_retrieval",
+            "retrieval_calls": 0,
+            "generation_ids": [
+                1,
+                1
+            ],
+            "answer_versions": [
+                1,
+                1
+            ],
+            "initial_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "final_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "preserved_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "newly_added_chunk_ids": [],
+            "duplicate_chunk_ids": [],
+            "state_continuous": true,
+            "answer_version_progression_ok": true,
+            "passed": true,
+            "notes": ""
+        },
+        {
+            "case_id": "G5-08",
+            "category": "stale_generation_protection",
+            "initial_query": "query A",
+            "refinement_query": "query B (newer partial, arrives before stale gen-1 retrieval lands)",
+            "final_query": "",
+            "expected_refinement_type": "N/A",
+            "actual_refinement_type": "",
+            "expected_retrieval_behavior": "stale_result_rejected",
+            "actual_retrieval_behavior": "stale_result_rejected",
+            "retrieval_calls": 0,
+            "generation_ids": [
+                1,
+                2
+            ],
+            "answer_versions": [],
+            "initial_chunk_ids": [
+                "T_C002"
+            ],
+            "final_chunk_ids": [
+                "T_C002"
+            ],
+            "preserved_chunk_ids": [],
+            "newly_added_chunk_ids": [],
+            "duplicate_chunk_ids": [],
+            "state_continuous": true,
+            "answer_version_progression_ok": true,
+            "passed": true,
+            "notes": ""
+        },
+        {
+            "case_id": "G5-09",
+            "category": "empty_early_retrieval",
+            "initial_query": "Please describe the weekend parking policy",
+            "refinement_query": "",
+            "final_query": "Please describe the weekend parking policy",
+            "expected_refinement_type": "NEW",
+            "actual_refinement_type": "NEW",
+            "expected_retrieval_behavior": "fresh_retrieval_after_empty_partial",
+            "actual_retrieval_behavior": "fresh_retrieval_after_empty_partial",
+            "retrieval_calls": 1,
+            "generation_ids": [],
+            "answer_versions": [
+                1
+            ],
+            "initial_chunk_ids": [],
+            "final_chunk_ids": [],
+            "preserved_chunk_ids": [],
+            "newly_added_chunk_ids": [],
+            "duplicate_chunk_ids": [],
+            "state_continuous": true,
+            "answer_version_progression_ok": true,
+            "passed": true,
+            "notes": "Empty early retrieval correctly triggers a fresh commit-time attempt rather than a false 'exact' reuse."
+        },
+        {
+            "case_id": "G5-10",
+            "category": "unrelated_followup",
+            "initial_query": "What are the international travel approval rules",
+            "refinement_query": "Please describe the weekend parking policy",
+            "final_query": "",
+            "expected_refinement_type": "NEW",
+            "actual_refinement_type": "NEW",
+            "expected_retrieval_behavior": "fresh_retrieval_no_merge",
+            "actual_retrieval_behavior": "fresh_retrieval_no_merge",
+            "retrieval_calls": 1,
+            "generation_ids": [
+                1,
+                2
+            ],
+            "answer_versions": [
+                1,
+                2
+            ],
+            "initial_chunk_ids": [
+                "T_C002",
+                "T_C003"
+            ],
+            "final_chunk_ids": [],
+            "preserved_chunk_ids": [],
+            "newly_added_chunk_ids": [],
+            "duplicate_chunk_ids": [],
+            "state_continuous": true,
+            "answer_version_progression_ok": true,
+            "passed": true,
+            "notes": ""
+        }
+    ],
+    "metrics": {
+        "refinement_classification_accuracy": {
+            "value": 1.0,
+            "matches": 9,
+            "denominator": 9
+        },
+        "correct_reuse_or_delta_behavior": {
+            "value": 1.0,
+            "matches": 10,
+            "denominator": 10
+        },
+        "state_continuity_rate": {
+            "value": 1.0,
+            "matches": 10,
+            "denominator": 10
+        },
+        "answer_version_continuity_rate": {
+            "value": 1.0,
+            "matches": 10,
+            "denominator": 10
+        },
+        "evidence_preservation_rate": {
+            "value": 1.0,
+            "matches": 3,
+            "denominator": 3
+        },
+        "duplicate_evidence_rate": {
+            "value": 0.0,
+            "matches": 0,
+            "denominator": 10
+        },
+        "stale_generation_protection_rate": {
+            "value": 1.0,
+            "matches": 1,
+            "denominator": 1
+        },
+        "presentation_suppression_rate": {
+            "value": 1.0,
+            "matches": 1,
+            "denominator": 1
+        }
+    },
+    "totals": {
+        "total": 10,
+        "passed": 10,
+        "failed": 0
+    }
+}

@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>STREAMING LIVE RAG</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --bg2: #0b111b;
+      --panel: rgba(20, 27, 39, .78);
+      --panel2: rgba(28, 37, 52, .72);
+      --line: rgba(255, 255, 255, .08);
+      --line2: rgba(255, 255, 255, .14);
+      --text: #e9eff7;
+      --muted: #8a99ad;
+      --faint: #5d6b7e;
+      --accent: #4c9aff;
+      --accent2: #7cc4ff;
+      --ok: #3fd07a;
+      --warn: #e0a92a;
+      --bad: #ff5f56;
+      --violet: #a371f7;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html {
+      scroll-padding-top: env(safe-area-inset-top, 0px)
+    }
+
+    body {
+      margin: 0;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      background:
+        radial-gradient(1100px 620px at 12% -12%, rgba(76, 154, 255, .13), transparent 60%),
+        radial-gradient(900px 560px at 92% 4%, rgba(163, 113, 247, .10), transparent 62%),
+        var(--bg);
+      color: var(--text);
+      font: 14px/1.55 "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---------- header ---------- */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: calc(18px + env(safe-area-inset-top, 0px)) 28px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(7, 11, 18, .82);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 650;
+      letter-spacing: 5px;
+      background: linear-gradient(92deg, #ffffff 8%, var(--accent2) 58%, var(--violet) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .sub {
+      color: var(--muted);
+      margin-top: 3px;
+      font-size: 13px;
+      letter-spacing: .3px
+    }
+
+    .phase {
+      align-self: center;
+      font-size: 10.5px;
+      letter-spacing: 1.8px;
+      font-weight: 600;
+      padding: 5px 11px;
+      border-radius: 999px;
+      color: var(--accent2);
+      background: rgba(76, 154, 255, .10);
+      border: 1px solid rgba(76, 154, 255, .32);
+      white-space: nowrap;
+    }
+
+    .conn {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 11.5px;
+      font-weight: 650;
+      letter-spacing: 1.8px;
+      color: var(--muted);
+      padding: 8px 15px;
+      border-radius: 999px;
+      background: var(--panel2);
+      border: 1px solid var(--line2);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--bad);
+      box-shadow: 0 0 0 0 rgba(255, 95, 86, .55);
+      animation: pulseBad 2s infinite
+    }
+
+    .dot.on {
+      background: var(--ok);
+      box-shadow: 0 0 0 0 rgba(63, 208, 122, .55);
+      animation: pulseOk 2s infinite
+    }
+
+    @keyframes pulseOk {
+      0% {
+        box-shadow: 0 0 0 0 rgba(63, 208, 122, .5)
+      }
+
+      70% {
+        box-shadow: 0 0 0 8px rgba(63, 208, 122, 0)
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(63, 208, 122, 0)
+      }
+    }
+
+    @keyframes pulseBad {
+      0% {
+        box-shadow: 0 0 0 0 rgba(255, 95, 86, .45)
+      }
+
+      70% {
+        box-shadow: 0 0 0 8px rgba(255, 95, 86, 0)
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(255, 95, 86, 0)
+      }
+    }
+
+    /* ---------- layout ---------- */
+    main {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 22px 24px 64px;
+      display: grid;
+      gap: 18px
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 18px
+    }
+
+    @media (max-width:900px) {
+      .split {
+        grid-template-columns: 1fr
+      }
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: border-color .22s ease, transform .22s ease;
+    }
+
+    section:hover {
+      border-color: var(--line2)
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 650;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    h2 .n {
+      color: var(--accent2);
+      background: rgba(76, 154, 255, .12);
+      border: 1px solid rgba(76, 154, 255, .28);
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      flex: none;
+    }
+
+    .hint {
+      color: var(--faint);
+      font-size: 11.5px;
+      letter-spacing: .2px
+    }
+
+    /* ---------- pipeline ---------- */
+    .pipe {
+      display: flex;
+      align-items: stretch;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .stage {
+      flex: 1 1 128px;
+      min-width: 112px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 13px 10px;
+      background: rgba(255, 255, 255, .02);
+      text-align: center;
+      transition: all .3s cubic-bezier(.4, 0, .2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stage .sname {
+      font-size: 10.5px;
+      letter-spacing: 1.6px;
+      font-weight: 650;
+      color: var(--faint);
+      transition: color .3s ease
+    }
+
+    .stage .sdot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--faint);
+      margin: 9px auto 0;
+      transition: all .3s ease
+    }
+
+    .stage.active {
+      border-color: rgba(76, 154, 255, .55);
+      background: linear-gradient(180deg, rgba(76, 154, 255, .16), rgba(76, 154, 255, .04));
+      box-shadow: 0 0 22px rgba(76, 154, 255, .22);
+    }
+
+    .stage.active .sname {
+      color: var(--accent2)
+    }
+
+    .stage.active .sdot {
+      background: var(--accent);
+      animation: pulseOk 1.4s infinite
+    }
+
+    .stage.done {
+      border-color: rgba(63, 208, 122, .42);
+      background: rgba(63, 208, 122, .07)
+    }
+
+    .stage.done .sname {
+      color: var(--ok)
+    }
+
+    .stage.done .sdot {
+      background: var(--ok)
+    }
+
+    .stage.warn {
+      border-color: rgba(224, 169, 42, .5);
+      background: rgba(224, 169, 42, .08)
+    }
+
+    .stage.warn .sname {
+      color: var(--warn)
+    }
+
+    .stage.warn .sdot {
+      background: var(--warn)
+    }
+
+    .arrow {
+      display: flex;
+      align-items: center;
+      color: var(--faint);
+      font-size: 15px;
+      flex: none;
+      user-select: none
+    }
+
+    @media (max-width:640px) {
+      .arrow {
+        display: none
+      }
+
+      .stage {
+        flex: 1 1 44%
+      }
+    }
+
+    /* ---------- transcript ---------- */
+    textarea {
+      width: 100%;
+      min-height: 92px;
+      resize: vertical;
+      background: rgba(0, 0, 0, .35);
+      color: var(--text);
+      border: 1px solid var(--line2);
+      border-radius: 11px;
+      padding: 13px 15px;
+      font: inherit;
+      font-size: 16px;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    textarea::placeholder {
+      color: var(--faint)
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(76, 154, 255, .16)
+    }
+
+    .row {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      align-items: center
+    }
+
+    button {
+      background: var(--panel2);
+      color: var(--text);
+      border: 1px solid var(--line2);
+      border-radius: 9px;
+      padding: 9px 16px;
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all .18s ease;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+      background: rgba(76, 154, 255, .12);
+      transform: translateY(-1px)
+    }
+
+    button:active {
+      transform: translateY(0)
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), #3f7ddb);
+      border-color: transparent;
+      color: #03101f;
+      font-weight: 700;
+      box-shadow: 0 5px 18px rgba(76, 154, 255, .28);
+    }
+
+    button.primary:hover {
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      box-shadow: 0 7px 22px rgba(76, 154, 255, .4)
+    }
+
+    .lbl {
+      color: var(--faint);
+      font-size: 11.5px;
+      letter-spacing: .3px
+    }
+
+    .scen {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 10px;
+      margin-top: 14px
+    }
+
+    button.chip {
+      text-align: left;
+      padding: 12px 14px;
+      border-radius: 11px;
+      background: rgba(255, 255, 255, .025);
+      display: block;
+      width: 100%;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.35;
+    }
+
+    button.chip .cd {
+      display: block;
+      margin-top: 5px;
+      color: var(--faint);
+      font-size: 11px;
+      letter-spacing: .2px
+    }
+
+    button.chip:hover .cd {
+      color: var(--muted)
+    }
+
+    .current {
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: rgba(0, 0, 0, .28);
+      border: 1px solid var(--line);
+      border-left: 2px solid var(--accent);
+      border-radius: 10px;
+      min-height: 44px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid var(--line2);
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-size: 10.5px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-right: 5px;
+      color: var(--muted);
+    }
+
+    /* ---------- controller ---------- */
+    .badge {
+      display: inline-block;
+      padding: 14px 26px;
+      border-radius: 12px;
+      font-size: 26px;
+      font-weight: 750;
+      letter-spacing: 4px;
+      background: rgba(255, 255, 255, .04);
+      color: var(--faint);
+      border: 1px solid var(--line2);
+      transition: all .3s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .badge.WAIT {
+      background: rgba(224, 169, 42, .13);
+      color: var(--warn);
+      border-color: rgba(224, 169, 42, .45);
+      box-shadow: 0 0 26px rgba(224, 169, 42, .18)
+    }
+
+    .badge.RETRIEVE {
+      background: rgba(76, 154, 255, .13);
+      color: var(--accent2);
+      border-color: rgba(76, 154, 255, .5);
+      box-shadow: 0 0 26px rgba(76, 154, 255, .24);
+      animation: glowPulse 2s infinite
+    }
+
+    .badge.SUPPRESS {
+      background: rgba(163, 113, 247, .13);
+      color: var(--violet);
+      border-color: rgba(163, 113, 247, .45);
+      box-shadow: 0 0 26px rgba(163, 113, 247, .18)
+    }
+
+    .badge.ANSWER {
+      background: rgba(63, 208, 122, .13);
+      color: var(--ok);
+      border-color: rgba(63, 208, 122, .45);
+      box-shadow: 0 0 26px rgba(63, 208, 122, .2)
+    }
+
+    @keyframes glowPulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 22px rgba(76, 154, 255, .18)
+      }
+
+      50% {
+        box-shadow: 0 0 34px rgba(76, 154, 255, .38)
+      }
+    }
+
+    dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 9px 16px
+    }
+
+    dt {
+      color: var(--faint);
+      font-size: 12px;
+      letter-spacing: .3px
+    }
+
+    dd {
+      margin: 0;
+      word-break: break-word;
+      font-size: 13px
+    }
+
+    #rReuse {
+      transition: all .3s ease;
+      border-radius: 6px
+    }
+
+    #rReuse.hot {
+      color: var(--accent2);
+      font-weight: 650;
+      background: rgba(76, 154, 255, .12);
+      border: 1px solid rgba(76, 154, 255, .3);
+      padding: 2px 9px;
+      display: inline-block;
+      animation: fadeUp .4s ease;
+    }
+
+    /* ---------- cards ---------- */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 14px
+    }
+
+    .card {
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+      transition: all .22s ease;
+      animation: fadeUp .35s ease both;
+    }
+
+    .card:hover {
+      border-color: var(--line2);
+      transform: translateY(-2px)
+    }
+
+    .card.cited {
+      border-color: rgba(63, 208, 122, .6);
+      box-shadow: 0 0 0 1px rgba(63, 208, 122, .35) inset, 0 0 22px rgba(63, 208, 122, .16);
+      background: linear-gradient(180deg, rgba(63, 208, 122, .08), var(--panel2));
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 13.5px;
+      font-weight: 650;
+      line-height: 1.4
+    }
+
+    .card dl {
+      margin-top: 10px
+    }
+
+    .ok {
+      color: var(--ok)
+    }
+
+    .bad {
+      color: var(--bad)
+    }
+
+    .warn {
+      color: var(--warn)
+    }
+
+    .meta {
+      color: var(--faint);
+      font-size: 11.5px;
+      margin-bottom: 8px;
+      word-break: break-all;
+      font-family: ui-monospace, "Cascadia Mono", Consolas, monospace
+    }
+
+    .empty {
+      color: var(--faint);
+      font-style: italic;
+      font-size: 13px
+    }
+
+    /* ---------- answer ---------- */
+    .ansHead {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 13px;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 1.4px;
+      font-weight: 650;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid var(--line2);
+      color: var(--muted);
+    }
+
+    .pill.gen {
+      color: var(--accent2);
+      border-color: rgba(76, 154, 255, .45);
+      background: rgba(76, 154, 255, .1)
+    }
+
+    .pill.gen::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulseOk 1.2s infinite
+    }
+
+    .pill.good {
+      color: var(--ok);
+      border-color: rgba(63, 208, 122, .45);
+      background: rgba(63, 208, 122, .1)
+    }
+
+    .pill.bad {
+      color: var(--warn);
+      border-color: rgba(224, 169, 42, .45);
+      background: rgba(224, 169, 42, .1)
+    }
+
+    .answer {
+      min-height: 180px;
+      white-space: pre-wrap;
+      font-size: 15.5px;
+      line-height: 1.75
+    }
+
+    .answer.streaming::after {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 17px;
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      background: var(--accent);
+      animation: caret 1s steps(2) infinite;
+    }
+
+    @keyframes caret {
+
+      0%,
+      49% {
+        opacity: 1
+      }
+
+      50%,
+      100% {
+        opacity: 0
+      }
+    }
+
+    .answer.insufficient {
+      color: var(--warn)
+    }
+
+    .banner {
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      border-radius: 9px;
+      font-size: 13px;
+      background: rgba(224, 169, 42, .1);
+      border: 1px solid rgba(224, 169, 42, .35);
+      color: var(--warn);
+      display: none;
+    }
+
+    .banner.err {
+      background: rgba(255, 95, 86, .1);
+      border-color: rgba(255, 95, 86, .38);
+      color: var(--bad)
+    }
+
+    .chip2 {
+      display: inline-block;
+      margin: 0 7px 7px 0;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(63, 208, 122, .1);
+      border: 1px solid rgba(63, 208, 122, .34);
+      color: var(--ok);
+      font-size: 11.5px;
+      font-family: ui-monospace, Consolas, monospace;
+      animation: fadeUp .3s ease both;
+    }
+
+    /* ---------- metrics ---------- */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+      gap: 14px
+    }
+
+    .metric {
+      background: rgba(0, 0, 0, .24);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 13px 12px;
+      text-align: center;
+    }
+
+    .metric b {
+      display: block;
+      font-size: 25px;
+      font-weight: 650;
+      letter-spacing: -.5px;
+      background: linear-gradient(180deg, #fff, var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .metric span {
+      color: var(--faint);
+      font-size: 10px;
+      letter-spacing: 1.3px;
+      text-transform: uppercase;
+      display: block;
+      margin-top: 5px
+    }
+
+    /* ---------- why panel ---------- */
+    .why {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px
+    }
+
+    .why .w {
+      border-left: 2px solid rgba(76, 154, 255, .5);
+      padding-left: 14px
+    }
+
+    .why h4 {
+      margin: 0 0 6px;
+      font-size: 12px;
+      letter-spacing: 1.4px;
+      color: var(--accent2);
+      font-weight: 650
+    }
+
+    .why p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.6
+    }
+
+    /* ---------- final polish: retrieval strategy / system / telemetry ---------- */
+    .strat {
+      display: inline-block;
+      padding: 3px 11px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--faint);
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid var(--line2);
+      transition: all .3s ease;
+    }
+
+    .strat.REUSE {
+      color: var(--ok);
+      background: rgba(63, 208, 122, .13);
+      border-color: rgba(63, 208, 122, .5);
+      box-shadow: 0 0 18px rgba(63, 208, 122, .18);
+      animation: fadeUp .4s ease
+    }
+
+    .strat.DELTA {
+      color: var(--accent2);
+      background: rgba(76, 154, 255, .13);
+      border-color: rgba(76, 154, 255, .5);
+      box-shadow: 0 0 18px rgba(76, 154, 255, .22);
+      animation: fadeUp .4s ease
+    }
+
+    .strat.FRESH {
+      color: var(--violet);
+      background: rgba(163, 113, 247, .13);
+      border-color: rgba(163, 113, 247, .5);
+      box-shadow: 0 0 18px rgba(163, 113, 247, .2);
+      animation: fadeUp .4s ease
+    }
+
+    .raw {
+      display: block;
+      margin-top: 3px;
+      color: var(--faint);
+      font-size: 10.5px;
+      overflow-wrap: anywhere;
+      font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    }
+
+    .obs {
+      display: grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 18px
+    }
+
+    .obs>section {
+      min-width: 0
+    }
+
+    @media (max-width:900px) {
+      .obs {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+      gap: 8px
+    }
+
+    .kv.sys {
+      grid-template-columns: repeat(auto-fit, minmax(118px, 1fr))
+    }
+
+    .kv>div {
+      background: rgba(0, 0, 0, .24);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 11px;
+      min-width: 0
+    }
+
+    .kv .k {
+      display: block;
+      color: var(--faint);
+      font-size: 10px;
+      letter-spacing: 1.3px;
+      text-transform: uppercase
+    }
+
+    .kv .v {
+      display: block;
+      margin-top: 2px;
+      font-size: 13px;
+      overflow-wrap: anywhere
+    }
+
+    .kv.tel .v {
+      font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+      font-size: 12px
+    }
+
+    /* ---------- Phase 8: mode switch + conference panel ---------- */
+    .mode-toggle {
+      margin-right: 14px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+      letter-spacing: .6px;
+      padding: 7px 12px;
+      border-radius: 8px;
+    }
+
+    .conf-only {
+      display: none;
+    }
+
+    body.conference-mode .judge-only {
+      display: none !important;
+    }
+
+    body.conference-mode .conf-only {
+      display: block;
+    }
+
+    .confTopRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .confResetBtn {
+      font-size: 12px;
+    }
+
+    .micStage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 22px 0 26px;
+    }
+
+    .micBigBtn {
+      width: 168px;
+      height: 168px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: linear-gradient(180deg, #2f6fed, #1d4fc4);
+      color: #fff;
+      box-shadow: 0 0 0 6px rgba(47, 111, 237, 0.18), 0 10px 30px rgba(0, 0, 0, 0.35);
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: none;
+      transition: transform .08s ease, background .15s ease, box-shadow .15s ease;
+    }
+
+    .micBigBtn:active {
+      transform: scale(0.97);
+    }
+
+    .micBigBtn .micIcon {
+      font-size: 46px;
+      line-height: 1;
+    }
+
+    .micBigBtn .micLabel {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+    }
+
+    .micBigBtn.listening {
+      background: linear-gradient(180deg, #e0402f, #b8291a);
+      box-shadow: 0 0 0 6px rgba(224, 64, 47, 0.28), 0 10px 30px rgba(0, 0, 0, 0.35);
+      animation: micPulse 1.1s ease-in-out infinite;
+    }
+
+    .micBigBtn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    @keyframes micPulse {
+      0% {
+        box-shadow: 0 0 0 6px rgba(224, 64, 47, 0.28), 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+
+      50% {
+        box-shadow: 0 0 0 16px rgba(224, 64, 47, 0.12), 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+
+      100% {
+        box-shadow: 0 0 0 6px rgba(224, 64, 47, 0.28), 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    .micStatePill {
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .confTranscriptWrap textarea {
+      width: 100%;
+      font: inherit;
+      font-size: 16px;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .confAnswerWrap {
+      margin-top: 18px;
+    }
+
+    .confBig {
+      font-size: 20px;
+      line-height: 1.5;
+      min-height: 60px;
+    }
+
+    .confCitations {
+      margin-top: 10px;
+    }
+
+    .confHistoryWrap {
+      margin-top: 22px;
+    }
+
+    .confHistory {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    .confHistoryItem {
+      cursor: pointer;
+      padding: 8px 10px;
+      border-radius: 8px;
+    }
+
+    .confHistoryItem:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .confHistoryItem .qn {
+      font-size: 12px;
+      opacity: .65;
+      margin-right: 6px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="brand">
+      <div>
+        <h1>STREAMING LIVE RAG</h1>
+        <div class="sub">Streaming retrieval &middot; adaptive reuse &middot; grounded answers</div>
+      </div>
+      <span class="phase">FINAL &middot; LIVE DEMO</span>
+    </div>
+    <div class="conn">
+      <button id="modeToggle" class="mode-toggle" type="button"
+        title="Switch between Judge (technical) and Conference (clean) view">Conference Mode</button>
+      <span class="dot" id="dot"></span><span id="connText">CONNECTING&hellip;</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="banner err" id="errBanner"></div>
+
+    <section class="conf-only" id="confPanel">
+      <div class="confTopRow">
+        <h2 style="margin:0"><span class="n">&#127908;</span>Ask by voice</h2>
+        <button id="confReset" class="confResetBtn" type="button">&#8635; Reset session</button>
+      </div>
+
+      <div class="micStage">
+        <button id="btnMic" class="micBigBtn" type="button">
+          <span class="micIcon">&#127908;</span>
+          <span class="micLabel">HOLD TO SPEAK</span>
+        </button>
+        <div id="micState" class="micStatePill">MIC OFF</div>
+        <div id="micUnsupported" class="banner" style="display:none">
+          Speech recognition isn't available in this browser (try Chrome or Edge). You can still type your question
+          below and press Ask.
+        </div>
+      </div>
+
+      <div class="confTranscriptWrap">
+        <div class="lbl">Transcript <span class="hint">live while holding &middot; editable after release</span></div>
+        <textarea id="confTranscript" rows="2"
+          placeholder="Hold the button and speak, or just type your question here&hellip;"></textarea>
+      </div>
+      <div class="row">
+        <button id="confAsk" class="primary">Ask</button>
+        <button id="confClearTranscript">Clear transcript</button>
+        <span id="confStatus" class="pill">IDLE</span>
+      </div>
+      <div id="dupBanner" class="banner" style="display:none"></div>
+
+      <div class="confAnswerWrap">
+        <div class="ansHead">
+          <span class="lbl">Answer</span>
+          <span class="pill" id="confAnsStatus">IDLE</span>
+        </div>
+        <div class="answer confBig" id="confAnswer"><span class="empty">Hold the mic button and ask a question to see
+            the answer here.</span></div>
+        <div id="confCitations" class="confCitations"></div>
+        <div class="row" style="margin-top:10px">
+          <button id="btnSpeak">&#128266; Read Answer</button>
+          <button id="btnPause">&#9208; Pause</button>
+          <button id="btnStopSpeak">&#9209; Stop</button>
+          <button id="btnStopAnswer">&#9209; Stop Answer</button>
+        </div>
+      </div>
+
+      <div class="confHistoryWrap">
+        <div class="ansHead">
+          <span class="lbl">History</span>
+          <button id="confClearHistory">Clear history</button>
+        </div>
+        <div id="confHistory" class="confHistory"><span class="empty">No questions yet.</span></div>
+      </div>
+    </section>
+
+    <section class="judge-only">
+      <h2><span class="n">&#9679;</span>Live pipeline</h2>
+      <div class="pipe">
+        <div class="stage idle" id="stTranscript">
+          <div class="sname">TRANSCRIPT</div>
+          <div class="sdot"></div>
+        </div>
+        <div class="arrow">&rarr;</div>
+        <div class="stage idle" id="stIntents">
+          <div class="sname">INTENTS</div>
+          <div class="sdot"></div>
+        </div>
+        <div class="arrow">&rarr;</div>
+        <div class="stage idle" id="stRetrieve">
+          <div class="sname">RETRIEVE</div>
+          <div class="sdot"></div>
+        </div>
+        <div class="arrow">&rarr;</div>
+        <div class="stage idle" id="stEvidence">
+          <div class="sname">EVIDENCE</div>
+          <div class="sdot"></div>
+        </div>
+        <div class="arrow">&rarr;</div>
+        <div class="stage idle" id="stGenerate">
+          <div class="sname">GENERATE</div>
+          <div class="sdot"></div>
+        </div>
+        <div class="arrow">&rarr;</div>
+        <div class="stage idle" id="stAnswer">
+          <div class="sname">CITED ANSWER</div>
+          <div class="sdot"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="judge-only">
+      <h2><span class="n">1</span>Live transcript <span class="hint">What the user is saying</span></h2>
+      <textarea id="text"
+        placeholder="Type a transcript. Send as a partial while &lsquo;speaking&rsquo;, then Commit the final utterance."></textarea>
+      <div class="row">
+        <button id="btnCommit" class="primary">Commit</button>
+        <button id="btnPartial">Send Partial</button>
+        <button id="btnReset">Reset</button>
+        <span class="lbl">Ctrl&nbsp;+&nbsp;Enter = Commit</span>
+      </div>
+      <div class="scen">
+        <button class="chip" id="demoA">A &middot; Multi-intent<span class="cd">Two intents &middot; parallel
+            retrieval</span></button>
+        <button class="chip" id="demoB">B &middot; Partial &rarr; Commit<span class="cd">Early retrieval &middot;
+            reuse</span></button>
+        <button class="chip" id="demoC">C &middot; Unsupported question<span class="cd">Evidence gate &middot; safe
+            refusal</span></button>
+      </div>
+      <div class="current">
+        <span class="lbl">Current transcript </span><span id="curKind" class="tag"></span>
+        <div id="curText" class="empty">Nothing sent yet.</div>
+      </div>
+    </section>
+
+    <div class="grid3 judge-only">
+      <section>
+        <h2><span class="n">2</span>Controller <span class="hint">Decision layer</span></h2>
+        <div><span class="badge" id="ctrlBadge">&mdash;</span></div>
+        <dl style="margin-top:16px">
+          <dt>Reason</dt>
+          <dd><span id="ctrlReason">&mdash;</span><span class="raw" id="ctrlReasonRaw" style="display:none"></span></dd>
+          <dt>Confidence</dt>
+          <dd id="ctrlConf">&mdash;</dd>
+        </dl>
+      </section>
+      <section>
+        <h2><span class="n">3</span>Retrieval <span class="hint">Observability</span></h2>
+        <dl>
+          <dt>Status</dt>
+          <dd id="rStatus">Idle</dd>
+          <dt>Generation ID</dt>
+          <dd id="rGen">&mdash;</dd>
+          <dt>Query version</dt>
+          <dd id="rVer">&mdash;</dd>
+          <dt>Chunks retrieved</dt>
+          <dd id="rChunks">&mdash;</dd>
+          <dt>Multi-intent</dt>
+          <dd id="rMulti">&mdash;</dd>
+          <dt>Strategy</dt>
+          <dd><span class="strat" id="rStrategy">&mdash;</span></dd>
+          <dt>Retrieval path</dt>
+          <dd id="rReuse">&mdash;</dd>
+        </dl>
+      </section>
+      <section>
+        <h2><span class="n">8</span>Metrics</h2>
+        <div class="metrics">
+          <div class="metric"><b id="mTtft">&mdash;</b><span>TTFT</span></div>
+          <div class="metric"><b id="mLlm">&mdash;</b><span>LLM latency</span></div>
+          <div class="metric"><b id="mServer">&mdash;</b><span>Server time</span></div>
+        </div>
+        <div class="lbl" style="margin-top:12px">Server time = wall-clock time inside the server for the request
+          (retrieval, gating and generation together).</div>
+      </section>
+    </div>
+
+    <div class="obs judge-only">
+      <section>
+        <h2><span class="n">9</span>System <span class="hint">Runtime stack</span></h2>
+        <div class="kv sys" id="sysPanel">
+          <div><span class="k">LLM</span><span class="v">llama3.2:3b</span></div>
+          <div><span class="k">Embeddings</span><span class="v">MiniLM</span></div>
+          <div><span class="k">Retrieval</span><span class="v">BM25 + Dense</span></div>
+          <div><span class="k">Fusion</span><span class="v">RRF</span></div>
+          <div><span class="k">Reranking</span><span class="v">Cross-Encoder</span></div>
+          <div><span class="k">Vector Store</span><span class="v">FAISS</span></div>
+          <div><span class="k">Generation</span><span class="v">Grounded + Validated</span></div>
+        </div>
+      </section>
+      <section>
+        <h2><span class="n">10</span>Live telemetry <span class="hint">From WebSocket events</span></h2>
+        <div class="kv tel" id="telPanel">
+          <div><span class="k">Session</span><span class="v" id="tSession">&mdash;</span></div>
+          <div><span class="k">Turn</span><span class="v" id="tTurn">&mdash;</span></div>
+          <div><span class="k">Event</span><span class="v" id="tEvent">&mdash;</span></div>
+          <div><span class="k">Timestamp</span><span class="v" id="tTime">&mdash;</span></div>
+          <div><span class="k">TTFT</span><span class="v" id="tTtft">&mdash;</span></div>
+          <div><span class="k">Prompt tokens</span><span class="v" id="tPrompt">&mdash;</span></div>
+          <div><span class="k">Completion tokens</span><span class="v" id="tCompletion">&mdash;</span></div>
+          <div><span class="k">Total tokens</span><span class="v" id="tTotal">&mdash;</span></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="judge-only">
+      <h2><span class="n">4</span>Intents <span class="hint">Retrieval runs per intent</span></h2>
+      <div id="intents" class="cards">
+        <div class="empty">Multi-intent queries show one card per intent.</div>
+      </div>
+    </section>
+
+    <section class="judge-only">
+      <h2><span class="n">5</span>Evidence <span id="evStage" class="tag"></span></h2>
+      <div id="evidence" class="cards">
+        <div class="empty">No evidence yet.</div>
+      </div>
+    </section>
+
+    <div class="split">
+      <section>
+        <h2><span class="n">6</span>Grounded answer</h2>
+        <div class="ansHead">
+          <span class="hint">Tokens stream directly from the grounded generator</span>
+          <span class="pill" id="ansStatus">IDLE</span>
+        </div>
+        <div class="banner" id="ansBanner"></div>
+        <div class="answer" id="answer"><span class="empty">The grounded answer streams here.</span></div>
+      </section>
+      <section>
+        <h2><span class="n">7</span>Citations</h2>
+        <div id="citations"><span class="empty">No citations yet.</span></div>
+        <div id="citOk" style="margin-top:12px"></div>
+      </section>
+    </div>
+
+    <section class="judge-only">
+      <h2><span class="n">&#9670;</span>Streaming-first RAG <span class="hint">Why this is different</span></h2>
+      <div class="why">
+        <div class="w">
+          <h4>RETRIEVE BEFORE THE UTTERANCE ENDS</h4>
+          <p>Early partial transcripts can trigger retrieval.</p>
+        </div>
+        <div class="w">
+          <h4>REFINE, DON&rsquo;T RESTART</h4>
+          <p>Additional details reuse previous evidence and retrieve only what changed.</p>
+        </div>
+        <div class="w">
+          <h4>GROUND EVERY ANSWER</h4>
+          <p>Evidence gating and citation validation prevent unsupported answers.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    function el(tag, cls, text) {const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e;}
+    const fmtMs = v => (typeof v === "number") ? (Math.round(v) + " ms") : "\u2014";
+    const fmtNum = v => (typeof v === "number") ? v.toFixed(3) : "\u2014";
+
+    let ws = null, streamed = "", finishWaiters = [];
+
+    /* ---------- pipeline stage helpers (presentation only) ---------- */
+    const STAGES = ["stTranscript", "stIntents", "stRetrieve", "stEvidence", "stGenerate", "stAnswer"];
+    function setStage(id, state) {
+      const n = $(id); if (!n) return;
+      n.classList.remove("idle", "active", "done", "warn");
+      n.classList.add(state);
+    }
+    function resetStages() {STAGES.forEach(s => setStage(s, "idle"));}
+    function setAnsStatus(text, cls) {
+      const p = $("ansStatus"); if (!p) return;
+      p.className = "pill" + (cls ? " " + cls : "");
+      p.textContent = text;
+    }
+
+    function connect() {
+      ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+      ws.onopen = () => {$("dot").className = "dot on"; $("connText").textContent = "LIVE";};
+      ws.onclose = () => {$("dot").className = "dot"; $("connText").textContent = "DISCONNECTED"; setTimeout(connect, 1500);};
+      ws.onmessage = e => handle(JSON.parse(e.data));
+    }
+    function send(obj) {
+      if (!ws || ws.readyState !== 1) {showError("Not connected to the backend yet."); return false;}
+      $("errBanner").style.display = "none";
+      ws.send(JSON.stringify(obj)); return true;
+    }
+    function showError(m) {const b = $("errBanner"); b.textContent = m; b.style.display = "block";}
+    function waitFinished(kind) {return new Promise(res => finishWaiters.push({kind, res}));}
+
+    function setCurrent(kind, text) {
+      $("curKind").textContent = kind === "partial" ? "Partial transcript" : "Committed utterance";
+      $("curText").className = ""; $("curText").textContent = text;
+      setStage("stTranscript", kind === "partial" ? "active" : "done");
+    }
+    /* Human-readable controller reasons. Applied ONLY to known (action, reason) pairs;
+       anything else is shown exactly as the backend sent it. Raw reason is kept in
+       the DOM (data-raw-reason, tooltip, and the small "reason code" line). */
+    const REASON_TEXT = {
+      WAIT: {
+        text: "Query is still incomplete.",
+        codes: ["empty_transcript", "insufficient_query_signal", "incomplete_transcript", "intent_not_yet_stable"]
+      },
+      RETRIEVE: {
+        text: "Enough query signal detected; retrieving evidence.",
+        codes: ["stable_intent", "topic_established", "final_transcript", "additive_refinement", "query_correction_or_replacement"]
+      },
+      SUPPRESS: {
+        text: "No retrieval needed for this turn.",
+        codes: ["presentation_restructure", "presentation-only refinement (no retrieval)"]
+      }
+    };
+    function humanReason(action, reason) {
+      const k = REASON_TEXT[action];
+      return (k && reason && k.codes.includes(reason)) ? k.text : null;
+    }
+    function setController(action, reason, conf) {
+      const b = $("ctrlBadge"); b.textContent = action || "\u2014"; b.className = "badge " + (action || "");
+      const friendly = humanReason(action, reason);
+      const rs = $("ctrlReason"), rw = $("ctrlReasonRaw");
+      rs.textContent = friendly || reason || "\u2014";
+      rs.dataset.rawReason = reason || "";
+      rs.title = reason ? "raw reason: " + reason : "";
+      rw.textContent = (friendly && reason) ? "reason code: " + reason : "";
+      rw.style.display = (friendly && reason) ? "block" : "none";
+      $("ctrlConf").textContent = (typeof conf === "number") ? conf.toFixed(2) : "\u2014";
+    }
+    function setRetrieval(o) {
+      if (o.status !== undefined) $("rStatus").textContent = o.status;
+      if (o.gen !== undefined) $("rGen").textContent = o.gen ?? "\u2014";
+      if (o.ver !== undefined) $("rVer").textContent = o.ver ?? "\u2014";
+      if (o.chunks !== undefined) $("rChunks").textContent = o.chunks ?? "\u2014";
+      if (o.multi !== undefined) $("rMulti").textContent = o.multi === null ? "\u2014" : (o.multi ? "Yes" : "No");
+    }
+    /* ---------- retrieval strategy (from existing backend fields only) ---------- */
+    const STRATEGY = {   // retrieval_reuse_mode / reuse_decision.mode -> visible state
+      exact: {cls: "REUSE", text: "REUSE"},
+      extension: {cls: "REUSE", text: "REUSE"},
+      extension_delta: {cls: "DELTA", text: "DELTA RETRIEVAL"},
+      new: {cls: "FRESH", text: "FRESH RETRIEVAL"},
+      replacement: {cls: "FRESH", text: "FRESH RETRIEVAL"},
+      early_retrieval: {cls: "FRESH", text: "FRESH RETRIEVAL"}
+    };
+    function setStrategy(mode) {
+      const n = $("rStrategy"), s = mode ? STRATEGY[mode] : null;
+      n.className = "strat" + (s ? " " + s.cls : "");
+      n.textContent = s ? s.text : "\u2014";
+      n.dataset.mode = mode || "";
+    }
+
+    /* ---------- live telemetry (only fields already present in WS payloads) ---------- */
+    const TEL_IDS = ["tSession", "tTurn", "tEvent", "tTime", "tTtft", "tPrompt", "tCompletion", "tTotal"];
+    function setTel(id, value, title) {
+      const n = $(id); if (!n) return;
+      const has = !(value === undefined || value === null || value === "");
+      n.textContent = has ? String(value) : "\u2014";
+      n.title = title ? String(title) : "";
+    }
+    function fmtTs(ts) {
+      if (!ts) return null;
+      const d = new Date(ts);
+      return isNaN(d.getTime()) ? String(ts) : d.toISOString().slice(11, 23) + " UTC";
+    }
+    function updateTelemetry(m) {
+      setTel("tSession", m.session_id);
+      setTel("tTurn", m.turn_id ?? m.turn);
+      setTel("tEvent", m.event);
+      setTel("tTime", fmtTs(m.timestamp), m.timestamp);
+      if (m.event === "answer_started") ["tTtft", "tPrompt", "tCompletion", "tTotal"].forEach(i => setTel(i, null));
+      if (m.event === "answer_completed" || m.event === "uncertainty_emitted") {
+        const tm = (m.token_metrics && typeof m.token_metrics === "object") ? m.token_metrics : null;
+        const ttft = (m.metrics && typeof m.metrics.ttft_ms === "number") ? m.metrics.ttft_ms : (tm ? tm.llm_ttft_ms : null);
+        setTel("tTtft", typeof ttft === "number" ? fmtMs(ttft) : null);
+        setTel("tPrompt", tm ? tm.prompt_tokens : null, m.token_metrics_reason);
+        setTel("tCompletion", tm ? tm.completion_tokens : null, m.token_metrics_reason);
+        setTel("tTotal", tm ? tm.total_tokens : null, m.token_metrics_reason);
+      }
+    }
+
+    function clearAll() {
+      setController(null); setStrategy(null); TEL_IDS.forEach(i => setTel(i, null)); setRetrieval({status: "Idle", gen: null, ver: null, chunks: null, multi: null});
+      $("rReuse").textContent = "\u2014"; $("rReuse").className = "";
+      ["mTtft", "mLlm", "mServer"].forEach(i => $(i).textContent = "\u2014");
+      $("intents").replaceChildren(el("div", "empty", "Multi-intent queries show one card per intent."));
+      $("evidence").replaceChildren(el("div", "empty", "No evidence yet.")); $("evStage").textContent = "";
+      $("answer").className = "answer"; $("answer").replaceChildren(el("span", "empty", "The grounded answer streams here."));
+      $("ansBanner").style.display = "none";
+      $("citations").replaceChildren(el("span", "empty", "No citations yet.")); $("citOk").replaceChildren();
+      $("curKind").textContent = ""; $("curText").className = "empty"; $("curText").textContent = "Nothing sent yet."; streamed = "";
+      resetStages(); setAnsStatus("IDLE", "");
+    }
+
+    function renderIntents(intents, multi) {
+      const box = $("intents"); box.replaceChildren();
+      if (!multi || !intents || !intents.length) {box.appendChild(el("div", "empty", "Single-intent query \u2014 no intent breakdown.")); return;}
+      setStage("stIntents", "done");
+      intents.forEach(it => {
+        const c = el("div", "card");
+        c.appendChild(el("h3", "", "INTENT " + it.intent_id));
+        c.appendChild(el("div", "", it.query));
+        const s = el("div", it.supported ? "ok" : "bad", it.supported ? "\u2713 SUPPORTED" : "\u2715 NOT SUPPORTED");
+        s.style.fontWeight = "650"; s.style.marginTop = "8px"; s.style.fontSize = "12px"; s.style.letterSpacing = "1.2px";
+        c.appendChild(s);
+        const dl = el("dl"); dl.style.marginTop = "10px";
+        const add = (k, v) => {dl.appendChild(el("dt", "", k)); dl.appendChild(el("dd", "", v));};
+        add("Top score", fmtNum(it.top_score));
+        add("Retrieved chunks", it.retrieved ?? "\u2014");
+        add("Evidence status", it.reason || "\u2014");
+        if (it.chunk_ids) add("Selected chunks", it.chunk_ids.length ? it.chunk_ids.join(", ") : "none");
+        c.appendChild(dl); box.appendChild(c);
+      });
+    }
+
+    function renderEvidence(msg) {
+      const box = $("evidence"); box.replaceChildren();
+      const label = {early_retrieval: "EARLY RETRIEVAL", answer: "ANSWER EVIDENCE", none: "NO EVIDENCE PASSED THE GATE"}[msg.stage] || "";
+      $("evStage").textContent = label;
+      if (!msg.chunks.length) {
+        box.appendChild(el("div", "empty", "No evidence passed the sufficiency gate."));
+        setStage("stEvidence", "warn");
+        return;
+      }
+      setStage("stRetrieve", "done");
+      setStage("stEvidence", "done");
+      msg.chunks.forEach(ch => {
+        const c = el("div", "card"); c.dataset.id = ch.chunk_id;
+        // Backend citations look like "[DOC_X \u00a7Section]" (doc_id + section), so key each card the same way.
+        if (ch.doc_id && ch.section) c.dataset.cite = "[" + ch.doc_id + " \u00a7" + ch.section + "]";
+        c.appendChild(el("h3", "", (ch.doc_id || ch.source || "document") + " \u2014 " + (ch.section || "")));
+        c.appendChild(el("div", "meta", ch.chunk_id + (ch.source ? "  \u00b7  " + ch.source : "")));
+        const t = el("div"); t.style.marginBottom = "8px";
+        if (label) t.appendChild(el("span", "tag", label));
+        if (ch.intent_ids && ch.intent_ids.length) {ch.intent_ids.forEach(i => t.appendChild(el("span", "tag", "Intent " + i)));}
+        c.appendChild(t);
+        c.appendChild(el("div", "", ch.text));
+        box.appendChild(c);
+      });
+    }
+
+    function renderCitations(cits, valid) {
+      const box = $("citations"); box.replaceChildren();
+      if (!cits || !cits.length) box.appendChild(el("span", "empty", "No citations."));
+      else cits.forEach(c => box.appendChild(el("span", "chip2", c)));
+      const ok = $("citOk"); ok.replaceChildren();
+      if (valid === true) ok.appendChild(el("div", "ok", "\u2713 CITATIONS VALIDATED"));
+      else if (valid === false) ok.appendChild(el("div", "bad", "\u2715 CITATION VALIDATION FAILED"));
+      // Exact match only: the card's "[doc_id \u00a7section]" key (or, as before, its chunk_id) must equal a backend citation.
+      const citedSet = new Set(cits || []);
+      document.querySelectorAll("#evidence .card").forEach(c => c.classList.toggle("cited", citedSet.has(c.dataset.id) || (!!c.dataset.cite && citedSet.has(c.dataset.cite))));
+    }
+
+    function onEvent(m) {
+      try {updateTelemetry(m);} catch (err) {console.warn("telemetry panel:", err);}
+      if (m.retrieval_reuse_mode && (m.event === "answer_started" || m.event === "uncertainty_emitted" || m.event === "answer_completed" || m.event === "retrieval_update")) setStrategy(m.retrieval_reuse_mode);
+      switch (m.event) {
+        case "controller_decision":
+          setController(m.action, m.reason, m.confidence);
+          setRetrieval({status: m.action === "WAIT" ? "Waiting \u2014 transcript not stable enough to retrieve" : "Suppressed \u2014 no retrieval needed", gen: m.generation_id, ver: m.query_version});
+          if (m.action === "WAIT") setStage("stTranscript", "active");
+          if (m.action === "RETRIEVE") setStage("stRetrieve", "active");
+          if (m.action === "SUPPRESS") setStage("stGenerate", "active");
+          if (m.action === "SUPPRESS" && m.latest_answer) {$("answer").className = "answer"; $("answer").textContent = m.latest_answer; renderCitations(m.latest_citations, null);}
+          break;
+        case "retrieval_update":
+          setController("RETRIEVE", m.reason, m.confidence);
+          setRetrieval({status: "Early retrieval accepted", gen: m.generation_id, ver: m.query_version, chunks: m.chunks_retrieved, multi: m.is_multi_intent});
+          setStage("stRetrieve", "done"); setStage("stEvidence", "active");
+          break;
+        case "retrieval_stale":
+          setRetrieval({status: "Discarded as stale (a newer partial superseded it)", gen: m.generation_id});
+          setStage("stRetrieve", "warn");
+          break;
+        case "answer_started":
+          streamed = ""; $("answer").className = "answer streaming"; $("answer").textContent = ""; $("ansBanner").style.display = "none";
+          if (m.action === "SUPPRESS") setController("SUPPRESS", "presentation-only refinement (no retrieval)");
+          setRetrieval({status: m.action === "SUPPRESS" ? "Reusing previous answer" : "Evidence passed gate \u2014 generating", gen: m.generation_id, ver: m.query_version, multi: m.is_multi_intent});
+          renderIntents(m.intents, m.is_multi_intent);
+          setStage("stGenerate", "active"); setAnsStatus("GENERATING", "gen");
+          break;
+        case "answer_token":
+          streamed += m.token; $("answer").textContent = streamed; break;
+        case "uncertainty_emitted": {
+          setRetrieval({status: "Insufficient evidence \u2014 answer refused", gen: m.generation_id, ver: m.query_version, multi: m.is_multi_intent});
+          renderIntents(m.intents, m.is_multi_intent);
+          const a = $("answer"); a.className = "answer insufficient"; a.textContent = m.answer;
+          const b = $("ansBanner"); b.textContent = "Insufficient evidence (" + m.reason + ") \u2014 the system declined to answer instead of guessing."; b.style.display = "block";
+          renderCitations([], null);
+          $("mServer").textContent = fmtMs(m.server_ms);
+          setStage("stGenerate", "done"); setStage("stAnswer", "warn");
+          setAnsStatus("\u26a0 INSUFFICIENT EVIDENCE", "bad");
+          break;
+        }
+        case "answer_completed":
+          $("answer").className = "answer"; $("answer").textContent = m.answer;   // final validated answer replaces streamed text
+          renderIntents(m.intents, m.is_multi_intent);
+          renderCitations(m.citations, m.citation_valid);
+          if (m.metrics) {$("mTtft").textContent = fmtMs(m.metrics.ttft_ms); $("mLlm").textContent = fmtMs(m.metrics.latency_ms);}
+          $("mServer").textContent = fmtMs(m.server_ms);
+          setRetrieval({status: "Answer completed"});
+          setStage("stGenerate", "done"); setStage("stAnswer", "done");
+          setAnsStatus("\u2713 GROUNDED", "good");
+          break;
+      }
+    }
+
+    // Stale-result protection (client side, in addition to the server
+    // already dropping these): every message the server sends is tagged
+    // with the session it belongs to. A `reset` starts a new session id;
+    // anything still arriving from the session that existed before that
+    // reset is a leftover from a retrieval/answer that was already running
+    // and must never repopulate the UI.
+    let currentSessionId = null;
+    function isStaleMessage(m) {
+      if (!m || !m.session_id) return false;
+      if (currentSessionId === null) {currentSessionId = m.session_id; return false;}
+      return m.session_id !== currentSessionId;
+    }
+
+    function handle(m) {
+      if (m.type !== "reset_done" && isStaleMessage(m)) return;
+      switch (m.type) {
+        case "orchestrator_event": onEvent(m); break;
+        case "evidence_chunks": renderEvidence(m); break;
+        case "reuse_decision":
+          $("rReuse").textContent = m.label + (m.added_tokens && m.added_tokens.length ? "  (+ \u201c" + m.added_tokens.join(" ") + "\u201d)" : "");
+          $("rReuse").className = "hot";
+          setStrategy(m.mode);
+          break;
+        case "request_finished":
+          if (m.kind === "partial") $("mServer").textContent = fmtMs(m.server_ms);
+          finishWaiters = finishWaiters.filter(w => {if (w.kind === m.kind) {w.res(); return false;} return true;});
+          break;
+        case "reset_done":
+          if (m.session_id) currentSessionId = m.session_id;
+          // Any request_finished a still-in-flight, pre-reset turn would
+          // have delivered is now dropped as stale (see isStaleMessage), so
+          // a waiter for it would otherwise hang forever.
+          finishWaiters.forEach(w => w.res());
+          finishWaiters = [];
+          clearAll();
+          break;
+        case "error": showError(m.message); break;
+      }
+    }
+
+    function currentText() {return $("text").value.trim();}
+    $("btnPartial").onclick = () => {const t = currentText(); if (t && send({type: "partial", text: t})) setCurrent("partial", t);};
+    $("btnCommit").onclick = () => {const t = currentText(); if (t && send({type: "commit", text: t})) setCurrent("commit", t);};
+    $("btnReset").onclick = () => {send({type: "reset"}); $("text").value = "";};
+    $("text").addEventListener("keydown", e => {if (e.ctrlKey && e.key === "Enter") $("btnCommit").click();});
+
+    const DEMO_A = "What approval is needed for international travel and what documentation is needed for reimbursement?";
+    const DEMO_B1 = "What approval is needed for international";
+    const DEMO_B2 = "What approval is needed for international travel?";
+    const DEMO_C = "What is the stock option vesting schedule for executives?";
+    $("demoA").onclick = () => {send({type: "reset"}); $("text").value = DEMO_A; send({type: "commit", text: DEMO_A}); setCurrent("commit", DEMO_A);};
+    $("demoC").onclick = () => {send({type: "reset"}); $("text").value = DEMO_C; send({type: "commit", text: DEMO_C}); setCurrent("commit", DEMO_C);};
+    $("demoB").onclick = async () => {
+      send({type: "reset"}); $("text").value = DEMO_B1; send({type: "partial", text: DEMO_B1}); setCurrent("partial", DEMO_B1);
+      await waitFinished("partial");
+      await new Promise(r => setTimeout(r, 900));
+      $("text").value = DEMO_B2; send({type: "commit", text: DEMO_B2}); setCurrent("commit", DEMO_B2);
+    };
+
+    /* =========================================================================
+       PHASE 8 — voice / conference layer (rebuilt: real push-to-talk).
+       Reuses the existing ws/send/onEvent/handle pipeline instead of
+       duplicating it. Wrapping onEvent/handle (hoisted function declarations)
+       lets this section observe the same orchestrator events the Judge panel
+       already renders, without changing a single line of that code.
+       ========================================================================= */
+    (function () {
+      const hasVoicePanel = !!$("confPanel");
+      if (!hasVoicePanel) return;
+
+      /* ---------- mode switch — Conference Mode is the default, primary workflow ---------- */
+      document.body.classList.add("conference-mode");
+      $("modeToggle").textContent = "Judge Mode";
+      $("modeToggle").onclick = () => {
+        const toConference = !document.body.classList.contains("conference-mode");
+        document.body.classList.toggle("conference-mode", toConference);
+        $("modeToggle").textContent = toConference ? "Judge Mode" : "Conference Mode";
+      };
+
+      /* ---------- voice telemetry (server just logs these; never affects the pipeline) ---------- */
+      function sendVoiceEvent(fields) {
+        try {
+          if (ws && ws.readyState === 1) ws.send(JSON.stringify(Object.assign({type: "voice_event"}, fields)));
+        } catch (e) { /* telemetry must never break the session */}
+      }
+
+      /* ---------- lightweight transcript cleanup (no LLM; never touches numbers/acronyms/proper nouns) ---------- */
+      const FILLERS = ["um", "umm", "uh", "uhh", "er", "ah", "like", "you know", "i mean"];
+      function cleanupTranscript(raw) {
+        if (!raw) return raw;
+        let t = " " + raw.trim() + " ";
+        FILLERS.forEach(f => {
+          t = t.replace(new RegExp("\\s" + f.replace(/ /g, "\\s+") + "(?=\\s)", "gi"), " ");
+        });
+        t = t.replace(/\b(\w+)(\s+\1\b)+/gi, "$1");     // collapse immediate repeats: "hotel hotel" -> "hotel"
+        t = t.replace(/\s+/g, " ").trim();
+        if (t && !/[.?!]$/.test(t)) t += "?";
+        return t;
+      }
+
+      /* ---------- microphone: real HOLD-TO-SPEAK push-to-talk ----------
+         pointerdown  -> mic starts LISTENING, captures the pointer so release
+                         anywhere still registers.
+         while held   -> interim results update the transcript live and are
+                         also sent into the EXISTING partial pipeline
+                         (controller WAIT/RETRIEVE, early retrieval) exactly
+                         like typing into the Judge text box and pressing
+                         "Send Partial" - just automatic, throttled ~500ms.
+                         Chrome/Edge sometimes auto-stop recognition after a
+                         pause even with continuous=true; if that happens
+                         while the button is still held, it is silently
+                         restarted so "holding" keeps listening.
+         pointerup/
+         pointercancel -> mic stops, speech is finalized, transcript is
+                         cleaned up (still editable), and the FINAL query is
+                         committed into the existing RAG pipeline
+                         automatically - no extra click required.
+      ---------------------------------------------------------------- */
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      let recognition = null, micHeld = false, micRunning = false, awaitingFinalize = false;
+      let finalTranscript = "", lastPartialSentAt = 0, lastPartialText = "", micStartedAt = 0;
+      const PARTIAL_THROTTLE_MS = 500;
+      // Retrieve-before-release: the exact text that was actually sent as the
+      // last "partial" (post-cleanup, matching what the server retrieved
+      // for), and whether that text has already been auto-committed for the
+      // CURRENT hold. Reset every time the button goes down.
+      let lastSentPartialClean = "", preReleaseCommitSent = false, preReleaseCommittedText = "";
+
+      if (SR) {
+        recognition = new SR();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-US";
+
+        recognition.onresult = (event) => {
+          let interim = "", final = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const r = event.results[i];
+            if (r.isFinal) final += r[0].transcript; else interim += r[0].transcript;
+          }
+          if (final) finalTranscript = (finalTranscript + " " + final).trim();
+          const liveText = (finalTranscript + " " + interim).trim();
+          if (liveText) {
+            $("confTranscript").value = liveText;
+            setMicState(micHeld ? "LISTENING" : "TRANSCRIBING");
+            maybeSendPartial(liveText);
+          }
+        };
+        recognition.onend = () => {
+          micRunning = false;
+          if (micHeld) {
+            // Browser cut the utterance short while the button is still
+            // down - keep the hold-to-speak illusion alive by restarting.
+            try {recognition.start(); micRunning = true;} catch (e) { /* ignore rapid-restart errors */}
+            return;
+          }
+          if (awaitingFinalize) finalizeAndCommit();
+        };
+        recognition.onerror = (e) => {
+          if (e && (e.error === "no-speech" || e.error === "aborted")) return; // benign, restart handled by onend
+          micRunning = false;
+          setMicState("ERROR");
+        };
+      } else {
+        $("micUnsupported").style.display = "block";
+        $("btnMic").classList.add("disabled");
+      }
+
+      function setMicState(state) {
+        const p = $("micState");
+        p.textContent = state;
+        $("btnMic").classList.toggle("listening", state === "LISTENING" || state === "TRANSCRIBING");
+      }
+
+      function maybeSendPartial(text) {
+        const now = performance.now();
+        if (text === lastPartialText) return;
+        if (now - lastPartialSentAt < PARTIAL_THROTTLE_MS) return;
+        lastPartialSentAt = now; lastPartialText = text;
+        const cleaned = cleanupTranscript(text);
+        if (send({type: "partial", text: cleaned, input_mode: "microphone"})) {
+          lastSentPartialClean = cleaned;
+          if (typeof setCurrent === "function") setCurrent("partial", text);
+          $("confStatus").textContent = "Listening\u2026"; $("confStatus").className = "pill gen";
+        }
+      }
+
+      // ---- retrieve BEFORE release: the main feature -----------------
+      // The existing WAIT/RETRIEVE/SUPPRESS controller (driven by the
+      // partials above) is the sole judge of when a query is ready. The
+      // moment ITS decision produces an accepted early retrieval
+      // ("retrieval_update" on the partial stream) while the button is
+      // still held, this fires the SAME commit pipeline (retrieval reuse +
+      // evidence gate + grounded generation) that a manual "Ask" would -
+      // using the exact text that was just retrieved for, so the commit's
+      // own reuse logic recognizes it as an exact match and does not
+      // re-retrieve. Never fires twice for one hold, and never on top of
+      // an already-running turn.
+      function maybeStartPreReleaseCommit() {
+        if (!micHeld || preReleaseCommitSent || pendingConfTurn) return;
+        const text = lastSentPartialClean;
+        if (!text) return;
+        preReleaseCommitSent = true;
+        preReleaseCommittedText = text;
+        confInputMode = "microphone";
+        actuallyAsk(text);
+      }
+
+      function startHold() {
+        if (!recognition || micHeld) return;
+        micHeld = true; awaitingFinalize = false;
+        finalTranscript = ""; lastPartialText = ""; lastSentPartialClean = "";
+        preReleaseCommitSent = false; preReleaseCommittedText = "";
+        confInputMode = "microphone";
+        $("confTranscript").value = "";
+        micStartedAt = performance.now();
+        sendVoiceEvent({event: "transcription_started", input_mode: "microphone"});
+        setMicState("LISTENING");
+        try {recognition.start(); micRunning = true;}
+        catch (e) { /* already running from a fast re-press; fine */}
+      }
+
+      function releaseHold() {
+        if (!micHeld) return;
+        micHeld = false;
+        setMicState("TRANSCRIBING");
+        awaitingFinalize = true;
+        // Releasing must not cancel, duplicate, or clear a retrieval/answer
+        // that maybeStartPreReleaseCommit already kicked off - only speech
+        // capture is being stopped here.
+        if (micRunning) {try {recognition.stop();} catch (e) {finalizeAndCommit();} }
+        else {finalizeAndCommit();}
+      }
+
+      function finalizeAndCommit() {
+        awaitingFinalize = false;
+        const ms = Math.round(performance.now() - micStartedAt);
+        const cleaned = cleanupTranscript(finalTranscript || $("confTranscript").value);
+        $("confTranscript").value = cleaned;
+        sendVoiceEvent({
+          event: "transcription_completed", input_mode: "microphone", transcription_ms: ms,
+          raw_transcript_length: finalTranscript.length, final_transcript_length: cleaned.length,
+        });
+        setMicState("MIC OFF");
+        if (!cleaned) {
+          if (!preReleaseCommitSent) $("confStatus").textContent = "Didn't catch that \u2014 try holding the button again.";
+          return;
+        }
+        if (preReleaseCommitSent && tokenize(cleaned).join(" ") === tokenize(preReleaseCommittedText).join(" ")) {
+          // Same query already committed while the button was still held -
+          // its retrieval/answer is already running (or done). Do not
+          // launch a second, duplicate commit.
+          return;
+        }
+        // Either nothing was committed yet (short hold, controller never
+        // reached RETRIEVE), or the user kept talking and the final text
+        // meaningfully extends what was already committed - either way this
+        // is the existing manual-"Ask" path, and the backend's own
+        // refinement/reuse logic (ADDITIVE etc.) decides how to handle it.
+        askOrCheckDuplicate(cleaned);
+      }
+
+      const micBtn = $("btnMic");
+      micBtn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        try {micBtn.setPointerCapture(e.pointerId);} catch (err) { }
+        startHold();
+      });
+      micBtn.addEventListener("pointerup", releaseHold);
+      micBtn.addEventListener("pointercancel", releaseHold);
+      micBtn.addEventListener("lostpointercapture", () => {if (micHeld) releaseHold();});
+      // Keyboard accessibility: hold Space/Enter while the button has focus.
+      micBtn.addEventListener("keydown", (e) => {
+        if ((e.code === "Space" || e.code === "Enter") && !e.repeat) {e.preventDefault(); startHold();}
+      });
+      micBtn.addEventListener("keyup", (e) => {
+        if (e.code === "Space" || e.code === "Enter") {e.preventDefault(); releaseHold();}
+      });
+
+      $("confTranscript").addEventListener("input", () => {if (!micHeld) confInputMode = "text";});
+      $("confClearTranscript").onclick = () => {$("confTranscript").value = ""; confInputMode = "text";};
+
+      /* ---------- duplicate detection (deterministic token-overlap, no LLM) ---------- */
+      const STOPWORDS = new Set(["the", "is", "a", "an", "of", "for", "to", "and", "what", "how",
+        "much", "can", "i", "do", "does", "are", "in", "on", "my", "it", "be", "me"]);
+      function tokenize(s) {return (s.toLowerCase().match(/[a-z0-9]+/g) || []).filter(w => !STOPWORDS.has(w));}
+      function jaccard(a, b) {
+        const A = new Set(tokenize(a)), B = new Set(tokenize(b));
+        if (!A.size || !B.size) return 0;
+        let inter = 0; A.forEach(x => {if (B.has(x)) inter++;});
+        return inter / (A.size + B.size - inter);
+      }
+      function findDuplicate(text) {
+        for (let i = historyItems.length - 1; i >= 0; i--) {
+          const sim = jaccard(text, historyItems[i].q);
+          if (sim >= 0.55) return {item: historyItems[i], similarity: sim};
+        }
+        return null;
+      }
+      function showDuplicateBanner(text, dup) {
+        const b = $("dupBanner"); b.replaceChildren();
+        b.appendChild(el("div", "", "Similar question found: \u201c" + dup.item.q + "\u201d"));
+        const row = el("div", "row"); row.style.marginTop = "8px";
+        const reuseBtn = el("button", "", "Reuse previous answer");
+        const againBtn = el("button", "primary", "Ask again");
+        reuseBtn.onclick = () => {
+          b.style.display = "none"; showHistoryItem(dup.item);
+          sendVoiceEvent({event: "duplicate_detected", duplicate_detected: true, similarity_score: Math.round(dup.similarity * 100) / 100});
+        };
+        againBtn.onclick = () => {
+          b.style.display = "none";
+          sendVoiceEvent({event: "duplicate_detected", duplicate_detected: false, similarity_score: Math.round(dup.similarity * 100) / 100});
+          actuallyAsk(text);
+        };
+        row.appendChild(reuseBtn); row.appendChild(againBtn); b.appendChild(row); b.style.display = "block";
+      }
+      function askOrCheckDuplicate(text) {
+        const dup = findDuplicate(text);
+        if (dup) {showDuplicateBanner(text, dup); return;}
+        actuallyAsk(text);
+      }
+
+      /* ---------- question history (session-local; no backend/DB changes) ---------- */
+      let historyItems = [];
+      function pushHistory(q, answer, citations, refused) {
+        historyItems.push({q, answer, citations: citations || [], refused: !!refused});
+        renderHistory();
+      }
+      function renderHistory() {
+        const box = $("confHistory"); box.replaceChildren();
+        if (!historyItems.length) {box.appendChild(el("span", "empty", "No questions yet.")); return;}
+        historyItems.forEach((h, i) => {
+          const row = el("div", "confHistoryItem");
+          row.appendChild(el("span", "qn", "Q" + (i + 1)));
+          row.appendChild(el("span", "", h.q));
+          row.onclick = () => showHistoryItem(h);
+          box.appendChild(row);
+        });
+      }
+      function renderConfCitations(cits) {
+        const box = $("confCitations"); box.replaceChildren();
+        if (!cits || !cits.length) {box.appendChild(el("span", "empty", "No citations.")); return;}
+        cits.forEach(c => box.appendChild(el("span", "chip2", c)));
+      }
+      function showHistoryItem(h) {
+        $("confAnswer").className = "answer confBig" + (h.refused ? " insufficient" : "");
+        $("confAnswer").textContent = h.answer;
+        renderConfCitations(h.citations);
+        $("confAnsStatus").textContent = h.refused ? "\u26a0 INSUFFICIENT EVIDENCE" : "\u2713 GROUNDED";
+        $("confAnsStatus").className = "pill " + (h.refused ? "bad" : "good");
+        lastAnswerText = h.answer;
+      }
+      $("confClearHistory").onclick = () => {historyItems = []; renderHistory();};
+
+      /* ---------- ask / cancellation / event bridging ---------- */
+      let confInputMode = "text", pendingConfTurn = false, confInterrupted = false,
+        confStreamed = "", currentConfQuestion = "", lastAnswerText = "";
+
+      function actuallyAsk(t) {
+        window.speechSynthesis && window.speechSynthesis.cancel();   // a new question stops previous speech
+        confInterrupted = false; pendingConfTurn = true; confStreamed = ""; currentConfQuestion = t;
+        $("confAnswer").className = "answer confBig streaming"; $("confAnswer").textContent = "";
+        $("confAnsStatus").textContent = "PROCESSING"; $("confAnsStatus").className = "pill gen";
+        $("confStatus").textContent = "Understanding question\u2026"; $("confStatus").className = "pill gen";
+        $("dupBanner").style.display = "none";
+        const mode = confInputMode;
+        if (send({type: "commit", text: t, input_mode: mode})) {
+          if (typeof setCurrent === "function") setCurrent("commit", t);
+          sendVoiceEvent({
+            event: mode === "microphone" ? "voice_question_submitted" : "text_question_submitted",
+            input_mode: mode, final_transcript_length: t.length
+          });
+        }
+        confInputMode = "text";
+      }
+      $("confAsk").onclick = () => {
+        if (micHeld) releaseHold();
+        const t = $("confTranscript").value.trim();
+        if (!t) return;
+        askOrCheckDuplicate(t);
+      };
+      $("btnStopAnswer").onclick = () => {
+        confInterrupted = true;
+        window.speechSynthesis && window.speechSynthesis.cancel();
+        $("confStatus").textContent = "Stopped.";
+        $("confAnsStatus").textContent = "STOPPED"; $("confAnsStatus").className = "pill";
+      };
+
+      /* ---------- full session reset (fixes: Reset previously left voice UI/state stale) ---------- */
+      function resetConferenceUI() {
+        if (micHeld) releaseHold();
+        if (recognition) {try {recognition.abort();} catch (e) { } }
+        micHeld = false; micRunning = false; awaitingFinalize = false;
+        window.speechSynthesis && window.speechSynthesis.cancel();
+        pendingConfTurn = false; confInterrupted = false; confStreamed = "";
+        currentConfQuestion = ""; lastAnswerText = ""; confInputMode = "text";
+        finalTranscript = ""; lastPartialText = ""; lastSentPartialClean = "";
+        preReleaseCommitSent = false; preReleaseCommittedText = "";
+        historyItems = []; renderHistory();
+        $("confTranscript").value = "";
+        $("confAnswer").className = "answer confBig";
+        $("confAnswer").replaceChildren(el("span", "empty", "Hold the mic button and ask a question to see the answer here."));
+        renderConfCitations([]);
+        $("confAnsStatus").textContent = "IDLE"; $("confAnsStatus").className = "pill";
+        $("confStatus").textContent = "IDLE"; $("confStatus").className = "pill";
+        $("dupBanner").style.display = "none";
+        setMicState("MIC OFF");
+      }
+      $("confReset").onclick = () => {
+        resetConferenceUI();
+        send({type: "reset"});
+        $("text").value = "";
+      };
+
+      // Wrap the existing onEvent (a hoisted function declaration) instead of
+      // editing it, so the Judge panel's behaviour is byte-for-byte unchanged.
+      const _origOnEvent = onEvent;
+      onEvent = function (m) {
+        _origOnEvent(m);
+        if (m.stage === "partial") {
+          // Live feedback for the hold: the SAME controller decisions the
+          // Judge panel shows (WAIT / RETRIEVE / early retrieval) driven by
+          // the mic's partial stream.
+          if (m.event === "controller_decision") {
+            $("confStatus").textContent = m.action === "RETRIEVE" ? "Retrieving evidence\u2026" : "Listening\u2026";
+          } else if (m.event === "retrieval_update") {
+            $("confStatus").textContent = "Early evidence found\u2026";
+            // The controller just accepted an early retrieval - the query is
+            // ready. Start the answer now, without waiting for release.
+            maybeStartPreReleaseCommit();
+          }
+        }
+        if (!pendingConfTurn) return;
+        switch (m.event) {
+          case "retrieval_update":
+            $("confStatus").textContent = "Retrieving evidence\u2026"; break;
+          case "answer_started":
+            $("confStatus").textContent = "Generating answer\u2026"; break;
+          case "answer_token":
+            if (!confInterrupted) {confStreamed += m.token; $("confAnswer").textContent = confStreamed;}
+            break;
+          case "uncertainty_emitted":
+            pendingConfTurn = false;
+            if (!confInterrupted) {
+              $("confAnswer").className = "answer confBig insufficient"; $("confAnswer").textContent = m.answer;
+              renderConfCitations([]);
+              $("confAnsStatus").textContent = "\u26a0 INSUFFICIENT EVIDENCE"; $("confAnsStatus").className = "pill bad";
+            }
+            lastAnswerText = m.answer; $("confStatus").textContent = "Answer ready.";
+            pushHistory(currentConfQuestion, m.answer, [], true);
+            break;
+          case "answer_completed":
+            pendingConfTurn = false;
+            if (!confInterrupted) {
+              $("confAnswer").className = "answer confBig"; $("confAnswer").textContent = m.answer;
+              renderConfCitations(m.citations);
+              $("confAnsStatus").textContent = "\u2713 GROUNDED"; $("confAnsStatus").className = "pill good";
+            }
+            lastAnswerText = m.answer; $("confStatus").textContent = "Answer ready.";
+            pushHistory(currentConfQuestion, m.answer, m.citations || [], false);
+            break;
+        }
+      };
+
+      // Wrap handle() too, so the existing Judge-mode "Reset" button (and the
+      // demo-scenario reset calls) also fully reset the voice/conference UI -
+      // previously Reset only cleared the Judge panel, leaving voice state stale.
+      const _origHandle = handle;
+      handle = function (m) {
+        _origHandle(m);
+        if (m.type === "reset_done") resetConferenceUI();
+      };
+
+      /* ---------- text-to-speech (browser-native SpeechSynthesis) ---------- */
+      function speakAnswer() {
+        if (!lastAnswerText || !("speechSynthesis" in window)) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(lastAnswerText);   // answer text only, never citation ids/telemetry
+        u.onstart = () => sendVoiceEvent({event: "answer_speech_started", answer_spoken: true});
+        u.onend = () => sendVoiceEvent({event: "answer_speech_stopped", answer_spoken: false});
+        window.speechSynthesis.speak(u);
+      }
+      $("btnSpeak").onclick = speakAnswer;
+      $("btnPause").onclick = () => {
+        if (!("speechSynthesis" in window)) return;
+        if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) window.speechSynthesis.pause();
+        else if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      };
+      $("btnStopSpeak").onclick = () => {
+        if (!("speechSynthesis" in window)) return;
+        window.speechSynthesis.cancel();
+        sendVoiceEvent({event: "answer_speech_stopped", answer_spoken: false});
+      };
+
+      renderHistory();
+    })();
+
+
+    connect();
+  </script>
+</body>
+
+</html>

@@ -1,8 +1,13 @@
-"""Phase 5 / Phase 6 retrieval evaluation runner (offline, no Ollama).
+"""Phase 5 / Phase 6 evaluation runner (offline retrieval by default; --live adds Ollama metrics).
 
 Usage:
     .venv\\Scripts\\python -m scripts.evaluate_phase5
     .venv\\Scripts\\python -m scripts.evaluate_phase5 --phase6 --offline-only
+    .venv\\Scripts\\python -m scripts.evaluate_phase5 --phase6 --live --json phase6_report.json
+
+OFFLINE section: Recall@k, MRR, multi-intent coverage / pass rate (no LLM).
+LIVE section (--live, needs Ollama): TTFT, generation latency, server latency,
+groundedness, token usage, cost per turn.
 """
 from __future__ import annotations
 
@@ -22,7 +27,15 @@ if str(ROOT) not in sys.path:
 from backend.app.retrieval.multi_intent_retriever import MultiIntentRetriever
 from backend.app.retrieval.streaming_retriever import StreamingRetriever
 from evaluation import eval_dataset
-from evaluation.metrics import mean, recall_at_k, reciprocal_rank
+from evaluation.metrics import (
+    aggregate_groundedness,
+    answer_groundedness,
+    canonical_citation,
+    mean,
+    recall_at_k,
+    reciprocal_rank,
+    summarize_live_turns,
+)
 
 PHASE5_CHUNKS = ROOT / "data" / "processed" / "chunks.jsonl"
 PHASE6_CHUNKS = ROOT / "data" / "processed" / "phase6_chunks.jsonl"
@@ -303,11 +316,213 @@ def evaluate(phase6: bool) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# LIVE evaluation (needs Ollama). Opt-in via --live; never run by default.
+# ---------------------------------------------------------------------------
+# One cold COMMIT per Phase 6 query on a fresh session: retrieval + selection
+# + gating + real Ollama generation + citation validation. Early (partial-
+# transcript) retrieval is not exercised, so TTFT here is the pipeline's
+# cold-commit TTFT, not the reuse-optimised demo path. The harness only reads
+# events the orchestrator already emits; it changes no pipeline behaviour.
+
+WARMUP_PROMPT = "Reply with the single word OK."
+
+
+def _allowed_citations(chunk_ids, citation_of):
+    return [citation_of[c] for c in chunk_ids or [] if c in citation_of]
+
+
+def _score_groundedness(started, completed, citation_of):
+    """Score the final answer using only evidence the pipeline already exposes."""
+    answer = completed.get("answer", "")
+    if completed.get("is_multi_intent"):
+        intents = [
+            {
+                "intent_id": i.get("intent_id"),
+                "supported": bool(i.get("supported")),
+                "allowed_citations": _allowed_citations(i.get("chunk_ids"), citation_of),
+            }
+            for i in completed.get("intents", [])
+        ]
+        return answer_groundedness(answer, intents=intents)
+    supported = (started or {}).get("supported_chunks", [])
+    return answer_groundedness(answer, _allowed_citations(supported, citation_of))
+
+
+async def run_live_turns(orchestrator, records, citation_of, session_factory, retrieval_counter):
+    """Run each record as one cold commit; return one turn record per query."""
+    turns = []
+    for rec in records:
+        rid = rec.get("id", rec.get("query_id", "?")) if isinstance(rec, dict) else "?"
+        text = _first(rec, QUERY_KEYS, "")
+        session = session_factory(f"live-eval-{rid}")
+        retrieval_counter[0] = 0
+        started = completed = refused = None
+        ttft_ms = pre_generation_ms = None
+
+        t0 = time.perf_counter()
+        async for event in orchestrator.process_commit(session, text):
+            elapsed = (time.perf_counter() - t0) * 1000.0
+            kind = event.get("event")
+            if kind == "answer_started":
+                started, pre_generation_ms = event, elapsed
+            elif kind == "answer_token" and ttft_ms is None:
+                ttft_ms = elapsed
+            elif kind == "answer_completed":
+                completed = event
+            elif kind == "uncertainty_emitted":
+                refused = event
+        server_ms = (time.perf_counter() - t0) * 1000.0
+
+        llm = (completed or {}).get("metrics") or {}
+        generated = ttft_ms is not None
+        turn = {
+            "id": rid,
+            "query": text,
+            "multi_intent": bool(is_multi(rec)),
+            "outcome": "answered" if completed else ("refused" if refused else "no_answer"),
+            "generated": generated,
+            "citation_valid": (completed or {}).get("citation_valid"),
+            "ttft_ms": ttft_ms,
+            # Refusals stop before generation, so all of their time is pre-generation.
+            "pre_generation_ms": pre_generation_ms if pre_generation_ms is not None else server_ms,
+            "llm_ttft_ms": llm.get("ttft_ms") if generated else None,
+            "llm_generation_ms": llm.get("latency_ms") if generated else None,
+            "server_processing_ms": server_ms,
+            "retrieval_calls": retrieval_counter[0],
+            "prompt_tokens": llm.get("prompt_tokens"),
+            "completion_tokens": llm.get("completion_tokens"),
+            "total_tokens": llm.get("total_tokens"),
+            "answer": (completed or refused or {}).get("answer"),
+            "groundedness": _score_groundedness(started, completed, citation_of) if completed else None,
+        }
+        turns.append(turn)
+    return turns
+
+
+def _report_live(turns, model) -> dict:
+    scored = [t["groundedness"] for t in turns if t["groundedness"]]
+    single = [t["groundedness"] for t in turns if t["groundedness"] and not t["multi_intent"]]
+    multi = [t["groundedness"] for t in turns if t["groundedness"] and t["multi_intent"]]
+    return {
+        "available": True,
+        "model": model,
+        "turns": len(turns),
+        "answered": sum(t["outcome"] == "answered" for t in turns),
+        "refused": sum(t["outcome"] == "refused" for t in turns),
+        "validator_rejections": sum(t["citation_valid"] is False for t in turns),
+        "summary": summarize_live_turns(turns, model),
+        "groundedness": aggregate_groundedness(scored),
+        "groundedness_single_intent": aggregate_groundedness(single),
+        "groundedness_multi_intent": aggregate_groundedness(multi),
+        "per_turn": turns,
+    }
+
+
+def evaluate_live(records, chunks_path) -> dict:
+    """Run the live pass. Returns {"available": False, "reason": ...} if Ollama is unreachable."""
+    from backend.app.models.session import SessionState
+    from backend.app.orchestration.streaming_rag_orchestrator import StreamingRagOrchestrator
+    from backend.app.retrieval.chunk_loader import load_chunks
+
+    orchestrator = StreamingRagOrchestrator(chunks_path=str(chunks_path))
+    llm = orchestrator.llm_client
+
+    try:  # untimed warm-up so model load time does not distort the first turn
+        llm.generate(WARMUP_PROMPT)
+    except Exception as exc:
+        return {"available": False, "reason": f"{type(exc).__name__}: {exc}"}
+
+    # Count retrieve() invocations at the lowest level (one per query/intent).
+    counter = [0]
+    inner = orchestrator.async_retriever.retrieve
+
+    async def counted(*args, **kwargs):
+        counter[0] += 1
+        return await inner(*args, **kwargs)
+
+    orchestrator.async_retriever.retrieve = counted
+
+    # Same loader as the pipeline, so citation strings match what was generated.
+    citation_of = {
+        c["chunk_id"]: canonical_citation(c["doc_id"], c["section"])
+        for c in load_chunks(chunks_path)
+    }
+
+    turns = asyncio.run(
+        run_live_turns(
+            orchestrator, records, citation_of,
+            lambda sid: SessionState(session_id=sid), counter,
+        )
+    )
+    return _report_live(turns, llm.model)
+
+
+def _fmt(value, digits=4):
+    if value is None:
+        return "unavailable"
+    return f"{value:.{digits}f}" if isinstance(value, float) else str(value)
+
+
+def _fmt_stats(stats, unit=""):
+    if not stats:
+        return "unavailable"
+    return (f"mean {stats['mean']:.1f}{unit} | median {stats['median']:.1f}{unit} | "
+            f"max {stats['max']:.1f}{unit} | n={stats['n']}")
+
+
+def _print_groundedness(label, g):
+    print(f"    {label}: micro {_fmt(g['groundedness_micro'])} | macro {_fmt(g['groundedness_macro'])} | "
+          f"claims {g['supported_claims']}/{g['total_claims']} | turns scored {g['turns_scored']} | "
+          f"invalid citations {g['invalid_citation_count']}")
+
+
+def print_live_report(live) -> None:
+    print()
+    print("LIVE (real Ollama generation; cold commit per query, no early retrieval)")
+    if not live.get("available"):
+        print(f"  unavailable: {live.get('reason')}")
+        return
+    s = live["summary"]
+    lat, cost = s["latency_ms"], s["cost_per_turn"]
+    print(f"  model: {live['model']} (untimed warm-up call excluded)")
+    print(f"  turns: {live['turns']} | answered: {live['answered']} | refused: {live['refused']} | "
+          f"citation-validator rejections: {live['validator_rejections']}")
+    print("  latency:")
+    print(f"    TTFT, pipeline (commit -> first token): {_fmt_stats(lat['ttft_pipeline'], ' ms')}")
+    print(f"    TTFT, LLM only (Ollama request -> first token): {_fmt_stats(lat['ttft_llm_only'], ' ms')}")
+    print(f"    pre-generation (retrieval + select + gate): {_fmt_stats(lat['pre_generation'], ' ms')}")
+    print(f"    LLM generation latency: {_fmt_stats(lat['llm_generation'], ' ms')}")
+    print(f"    server processing per turn: {_fmt_stats(lat['server_processing'], ' ms')}")
+    print("  groundedness (citation/evidence proxy; NOT semantic factual truth):")
+    _print_groundedness("all      ", live["groundedness"])
+    _print_groundedness("single   ", live["groundedness_single_intent"])
+    _print_groundedness("multi    ", live["groundedness_multi_intent"])
+    print("  cost per turn:")
+    print(f"    cloud/API: ${cost['cloud_api_cost_usd_per_turn']:.2f} / INR {cost['cloud_api_cost_inr_per_turn']:.2f}")
+    print(f"    basis: {cost['cost_basis']}")
+    tok = cost["token_usage"]
+    if tok["status"] == "available":
+        print(f"    tokens/turn (Ollama-reported, {tok['turns_with_token_counts']} turns): "
+              f"prompt {tok['mean_prompt_tokens']:.1f} | completion {tok['mean_completion_tokens']:.1f} | "
+              f"total {tok['mean_total_tokens']:.1f}")
+    else:
+        print("    tokens/turn: unavailable (Ollama returned no token counts)")
+    rc = cost["mean_retrieval_calls_per_turn"]
+    print(f"    retrieval calls/turn: {_fmt(rc['mean'], 2) if rc else 'unavailable'}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Phase 5/6 retrieval evaluation")
     ap.add_argument("--phase6", action="store_true", help="use the Phase 6 corpus and labels")
     ap.add_argument("--offline-only", action="store_true", help="retrieval only; never calls Ollama")
+    ap.add_argument("--live", action="store_true",
+                    help="also run the live pass (needs Ollama): TTFT, latency, groundedness, tokens, cost per turn")
+    ap.add_argument("--json", metavar="PATH", help="also write the full report as JSON")
     args = ap.parse_args()
+
+    if args.live and args.offline_only:
+        ap.error("--live and --offline-only are mutually exclusive")
 
     try:
         report = evaluate(args.phase6)
@@ -321,7 +536,33 @@ def main() -> int:
     print(f"Phase {'6' if args.phase6 else '5'} evaluation (offline retrieval only)")
     for k, v in report.items():
         print(f"  {k}: {v:.4f}" if isinstance(v, float) else f"  {k}: {v}")
-    return 0
+    print("  note: mean_latency_ms is offline retrieval latency, not TTFT")
+    print("  groundedness: not measurable offline (needs generated answers) - see LIVE")
+
+    live = None
+    if args.live:
+        chunks_path = PHASE6_CHUNKS if args.phase6 else PHASE5_CHUNKS
+        try:
+            live = evaluate_live(load_records(args.phase6), chunks_path)
+        except Exception as exc:
+            import traceback
+
+            traceback.print_exc()
+            live = {"available": False, "reason": f"{type(exc).__name__}: {exc}"}
+        print_live_report(live)
+    else:
+        print()
+        print("LIVE: not run (TTFT, generation latency, server latency, cost per turn, tokens, "
+              "groundedness). Re-run with --live; requires Ollama.")
+
+    if args.json:
+        Path(args.json).write_text(
+            json.dumps({"offline": report, "live": live}, indent=2, default=str),
+            encoding="utf-8",
+        )
+        print(f"\nJSON report written to {args.json}")
+
+    return 2 if live is not None and not live.get("available") else 0
 
 
 if __name__ == "__main__":

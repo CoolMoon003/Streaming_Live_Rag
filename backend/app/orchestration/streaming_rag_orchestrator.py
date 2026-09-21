@@ -21,6 +21,7 @@ from backend.app.query.refinement import (
     QueryRefinementAnalyzer,
     RefinementType,
 )
+from backend.app.query.generic_query_expander import GenericQueryExpander
 from backend.app.query.refinement_retriever import RefinementRetriever
 from backend.app.retrieval.async_streaming_retriever import AsyncStreamingRetriever
 from backend.app.retrieval.multi_intent_retriever import MultiIntentRetriever
@@ -91,6 +92,10 @@ class StreamingRagOrchestrator:
         self.evidence_selector = EvidenceSelector()
         self.evidence_gate = EvidenceGate()
         self.citation_validator = CitationValidator()
+
+        # One-shot fallback for generic questions ("What is the travel policy?")
+        # that the normal retrieval + gate rejects. Deterministic, no LLM call.
+        self.generic_query_expander = GenericQueryExpander(chunks_path)
 
     # =========================================================================
     # G6 TELEMETRY (observational only - never influences any decision)
@@ -733,6 +738,45 @@ class StreamingRagOrchestrator:
                 results=candidate_evidence,
                 query=active_query,
             )
+
+            # Narrow fallback: only when the normal retrieval + gate found no
+            # usable evidence, try ONE refined query for generic questions.
+            # The refined query is used for retrieval only; selection, the
+            # (unchanged) gate and generation all keep the ORIGINAL question,
+            # and the gate must pass on its own scores. Otherwise the
+            # original insufficient decision stands.
+            if gate_decision.reason in ("no_evidence", "insufficient_relevance"):
+                refined_query = self.generic_query_expander.expand(active_query)
+
+                if refined_query:
+                    retry_generation_id = session.active_generation_id
+
+                    retry_res = await self.async_retriever.retrieve(
+                        query=refined_query,
+                        generation_id=generation_id,
+                    )
+
+                    turn["retrieval_calls_this_turn"] = (
+                        turn.get("retrieval_calls_this_turn") or 0
+                    ) + 1
+
+                    if session.active_generation_id == retry_generation_id:
+                        retry_evidence = retry_res["results"]["reranked_results"]
+                        retry_selected = self.evidence_selector.select(
+                            results=retry_evidence,
+                            query=active_query,
+                        )
+                        retry_candidate = (
+                            retry_selected if retry_selected else retry_evidence
+                        )
+                        retry_decision = self.evidence_gate.check(
+                            results=retry_candidate,
+                            query=active_query,
+                        )
+
+                        if retry_decision.sufficient:
+                            candidate_evidence = retry_candidate
+                            gate_decision = retry_decision
 
         if not gate_decision.sufficient:
             if gate_decision.reason == "missing_numeric_fact":

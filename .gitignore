@@ -18,3 +18,5 @@ sentence_transformers/
 .idea/
 .DS_Store
 Thumbs.db
+
+.g1_test_env/

@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from typing import Generator
 import requests
@@ -17,14 +18,17 @@ class OllamaClient:
     def __init__(
         self,
         model: str = "llama3.2:3b",
-        base_url: str = "http://localhost:11434",
+        base_url: str | None = None,
         think: bool = False,
         temperature: float = 0.0,
         num_predict: int = 300,
         timeout: float = 60.0,
     ):
         self.model = model
-        self.base_url = base_url
+        self.base_url = base_url or os.getenv(
+            "OLLAMA_BASE_URL",
+            "http://localhost:11434"
+        )
         self.think = think
         self.temperature = temperature
         self.num_predict = num_predict

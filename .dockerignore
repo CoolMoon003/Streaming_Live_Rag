@@ -1,0 +1,11 @@
+.venv/
+.git/
+**/__pycache__/
+*.pyc
+.env
+.env.*
+*.log
+.cache/
+models/
+huggingface/
+sentence_transformers/

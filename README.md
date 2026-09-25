@@ -1,12 +1,181 @@
 # Streaming-Live-RAG
 
+> **Samsung PRISM GenAI Hackathon 2026 — Theme 04**
+
 A Retrieval-Augmented Generation system for **live, streaming conversational input**. Instead of waiting for a finished question, the system can begin retrieval while a user is still speaking, then reuse or refine that evidence when the transcript is committed.
 
-The implementation is local-first: hybrid retrieval uses BM25 + dense FAISS retrieval, reranking uses a local Sentence-Transformers CrossEncoder, and generation uses a local Ollama model. The browser demo exposes the controller, retrieval, evidence, generation, and citation stages over a FastAPI WebSocket.
+The implementation is **local-first and CPU-oriented**:
 
-> **Project context:** The repository implementation was built for Samsung hackathon **Theme 04**, as referenced by the docstring in `backend/app/orchestration/streaming_rag_orchestrator.py`.
+* **BM25 + Dense FAISS** hybrid retrieval
+* **Reciprocal Rank Fusion (RRF)**
+* Local **Sentence-Transformers CrossEncoder** reranking
+* Local **Ollama** generation
+* Evidence selection and sufficiency gating before generation
+* Citation validation against supplied evidence
+* Session/generation protection against stale streaming results
+* Multi-intent decomposition and per-intent evidence handling
+* Browser-based **Judge Mode** and **Conference Mode**
+* Push-to-talk voice interaction using browser SpeechRecognition
+* FastAPI WebSocket streaming between the browser and backend
+
+The browser demo exposes the controller, retrieval, evidence, generation, and citation stages through a FastAPI WebSocket.
 
 ---
+
+## 🏆 Hackathon Submission
+
+**Theme:** Samsung PRISM GenAI Hackathon 2026 — Theme 04
+**Project:** Streaming-Live-RAG
+
+### Submission Contents
+
+| Requirement        | Repository status              |
+| ------------------ | ------------------------------ |
+| Source code        | ✅ Included                     |
+| `requirements.txt` | ✅ Included                     |
+| Detailed README    | ✅ This file                    |
+| Presentation / PPT | 📌 Included in repository root |
+| Demo video         | 🎥 YouTube link provided below |
+| Hackathon Git tag  | `PRISM_GENAI_HACKATHON_Y2026`  |
+
+### 🎥 Demo Video
+
+**5-minute final demonstration:**
+
+> **TODO:** Replace this line with the actual unlisted YouTube URL.
+
+`YouTube Demo: https://www.youtube.com/watch?v=Twsv_37PmaQ'
+
+If the demo video is hosted externally because of file-size limitations, the repository README serves as the navigation point to the video.
+
+### 📊 Presentation
+
+The final hackathon presentation is included in the repository root:
+
+```text
+PRESENTATION.pptx
+```
+
+### 🔖 Submission Git Tag
+
+The final submission commit is tagged:
+
+```text
+PRISM_GENAI_HACKATHON_Y2026
+```
+
+---
+
+## Quick Start
+
+### Requirements
+
+* Python 3.11
+* Ollama
+* `llama3.2:3b`
+* Windows/Linux/macOS
+* A modern browser for the web demo
+
+### Install
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+### Start Ollama
+
+```powershell
+ollama pull llama3.2:3b
+```
+
+Make sure Ollama is running before using answer generation.
+
+### Start the application
+
+```powershell
+python -m uvicorn backend.app.api.server:app --host 0.0.0.0 --port 8000
+```
+
+Open:
+
+```text
+http://localhost:8000
+```
+
+The browser demo communicates with the FastAPI WebSocket endpoint:
+
+```text
+/ws
+```
+
+---
+
+## What Makes This Different
+
+Conventional RAG waits for:
+
+```text
+Complete Query
+      ↓
+   Retrieve
+      ↓
+    Rerank
+      ↓
+   Generate
+      ↓
+    Answer
+```
+
+Streaming-Live-RAG begins processing while the user is still speaking:
+
+```text
+Live Transcript
+      ↓
+WAIT / SUPPRESS / RETRIEVE
+      ↓
+Early Retrieval
+      ↓
+Evidence Reuse / Delta Retrieval
+      ↓
+Multi-Intent Handling
+      ↓
+Hybrid Retrieval
+      ↓
+RRF + CrossEncoder
+      ↓
+Evidence Selection + Gate
+      ↓
+Grounded Generation
+      ↓
+Citation Validation
+      ↓
+Streaming Answer
+```
+
+The core design goal is to reduce unnecessary waiting and unnecessary repeated retrieval while maintaining evidence-grounded answers.
+
+---
+
+## Project Context
+
+This repository was developed for the **Samsung PRISM GenAI Hackathon 2026, Theme 04**.
+
+The implementation focuses on streaming conversational RAG where the system must handle:
+
+1. incomplete live transcripts;
+2. early retrieval;
+3. evidence reuse;
+4. additive and replacement refinements;
+5. multi-intent questions;
+6. unsupported questions;
+7. grounded generation;
+8. citation validation;
+9. stale streaming operations;
+10. voice-based conference presentation.
+
+> **Important:** Features described in this README correspond to the implementation currently committed to the repository. Architectural ideas that are not implemented are explicitly identified as future work.
 
 ## 1. Project Overview
 
@@ -409,7 +578,7 @@ The stack is taken from `requirements.txt`, the Dockerfile, and the backend impo
 | Data / schemas | NumPy, pandas, Pydantic |
 | Configuration | python-dotenv |
 | Frontend | Static HTML/CSS/JavaScript |
-| Voice input | Browser SpeechRecognition API |
+| Voice input/output | Browser SpeechRecognition API (input) + SpeechSynthesis API (answer playback) |
 | Containerization | Docker + Docker Compose |
 
 No frontend build system is required for the included demo.
@@ -716,9 +885,84 @@ The repository also contains an `evaluation/` package with `eval_dataset.py`, `f
 
 ---
 
-## 26. Judge-Friendly Demo Flow
+## 26. Live Voice / Conference Mode
 
-The included browser demo has three preset scenarios.
+`demo/index.html` adds a voice presentation layer (labelled `PHASE 8` in the source) on top of the same WebSocket `partial`/`commit` protocol the text-based Judge Mode panel already uses. It is a browser-only UI layer: it sends and receives the same messages, and does not add any new backend endpoint or bypass any pipeline stage.
+
+### Push-to-talk flow
+
+1. The user holds the microphone button (`btnMic`), which starts the browser's native `SpeechRecognition` (`window.SpeechRecognition` / `webkitSpeechRecognition`) API in continuous, interim-results mode.
+2. While held, interim and final speech results are merged into a live transcript and shown in the transcript box.
+3. Before being sent, the transcript is cleaned locally in the browser: filler words (`um`, `uh`, `like`, etc.) are stripped and immediate word repeats are collapsed. No LLM is involved in this cleanup step.
+4. The cleaned text is throttled (roughly every 500 ms while it changes) and sent as a `partial` WebSocket event with `input_mode: "microphone"` — the same `partial` event type the Judge Mode transcript box sends, so it is evaluated by the existing `RetrievalController` (`WAIT` / `SUPPRESS` / `RETRIEVE`).
+5. If the controller accepts an early retrieval for the current partial text while the button is still held (a `retrieval_update` event on the partial stream), the browser starts the answer immediately, using the exact text that was just retrieved for. The existing commit-time reuse logic then recognizes this as an exact match and does not re-retrieve. This can fire at most once per hold.
+6. Releasing the microphone button stops speech recognition and finalizes/cleans the transcript. If that exact text was not already committed in step 5, it is sent through the normal `commit` path — the same path a manual "Ask" or the Judge Mode "Commit" button uses.
+7. The grounded answer and its citations are displayed in the Conference Mode answer/citations panel as they stream in.
+8. The browser's native `SpeechSynthesis` API can read the answer aloud (`Read Answer` / `Pause` / `Stop`); starting a new question always cancels any answer currently being spoken.
+9. Voice- and session-related interactions are recorded as observational telemetry where implemented (see "Voice Telemetry" below).
+
+The voice layer does **not** replace or bypass retrieval, evidence selection/gating, grounded generation, citation validation, or session/generation stale-result protection: partial and commit text from the microphone flows through `StreamingRagOrchestrator` exactly like typed text, because both input paths use the same `partial`/`commit` WebSocket messages and the same server-side handlers (`handle_partial` / `handle_commit`).
+
+A lightweight, deterministic duplicate-question check (token-overlap/Jaccard similarity against session-local question history, no LLM) can offer to reuse a previous answer instead of re-asking; this runs entirely in the browser and does not affect retrieval.
+
+---
+
+## 27. Judge Mode vs Conference Mode
+
+The demo has two UI modes, toggled from a single header button (`Judge Mode` / `Conference Mode`). The toggle only adds or removes a `conference-mode` class on the page `<body>`; both modes share one WebSocket connection, one session, and one backend pipeline (`StreamingRagOrchestrator` via `server.py`) — nothing in the toggle changes server-side behavior.
+
+**Judge Mode** (technical/debug presentation) shows:
+
+- the live pipeline stage indicator (transcript → intents → retrieve → evidence → generate → cited answer)
+- the raw transcript box with `Commit` / `Send Partial` / `Reset` controls
+- the three preset demo scenarios (A/B/C — see the next section)
+- controller state: decision, reason, confidence
+- retrieval observability: generation ID, query version, chunks retrieved, multi-intent flag, retrieval strategy, retrieval path (fresh vs. reused)
+- per-intent cards, evidence cards, the grounded-answer/citations panel, and TTFT/LLM-latency/server-time metrics
+- the system/stack panel and the live telemetry panel (session, turn, event, timestamp, token counts)
+
+**Conference Mode** (clean live presentation, the default view) shows:
+
+- the push-to-talk microphone button and live/editable transcript
+- the grounded answer with citations, rendered in a larger presentation-friendly layout
+- connection/session status
+- a session-local question history with duplicate-question detection
+- a reset control (`Reset session`)
+
+Both modes observe the same underlying WebSocket event stream: the Conference Mode script wraps the existing `onEvent`/`handle` functions rather than duplicating them, so the clean and technical views are driven by identical orchestrator events and never diverge in what they represent.
+
+### Reset behavior
+
+Pressing reset (from either mode) sends a `reset` message to the server, which creates a fresh `SessionState` with a new session ID and a new per-session lock, and updates the single "active session" marker the server uses to gate outgoing messages. Any partial/commit turn still running against the previous session is left to finish on the server, but its output is dropped rather than sent to the client, because outgoing messages are tagged with the session they belong to and are only forwarded while that session is still the active one. On the client, a `reset_done` event fully resets the Conference Mode UI as well: it stops any in-progress speech recognition and speech synthesis, clears the transcript, answer, citation, and history panels, and returns the microphone/session status indicators to idle — so voice/session state cannot go stale after a reset.
+
+---
+
+## 28. Voice Telemetry
+
+Client-reported voice events are sent as a separate `voice_event` WebSocket message type and logged by the server as additional, allow-listed G6 telemetry records — the same append-only JSON Lines mechanism described in "Session / Generation Stale-Result Protection" and "Observational telemetry" below. Voice events never reach `StreamingRagOrchestrator` and never influence retrieval, evidence handling, or generation; they are purely descriptive records of the browser's own microphone/TTS/session behavior.
+
+The server allow-lists the following fields out of a client `voice_event` message (`backend/app/api/server.py`, `_VOICE_EVENT_FIELDS`):
+
+| Field | Meaning |
+|---|---|
+| `input_mode` | `"microphone"` or `"text"` — also attached to normal commit-turn telemetry so a turn's input source is visible |
+| `transcription_ms` | Duration of the speech-recognition hold, in milliseconds |
+| `raw_transcript_length` | Character length of the raw (pre-cleanup) transcript — a count, not the transcript text itself |
+| `final_transcript_length` | Character length of the cleaned, finalized transcript — likewise a count, not the text |
+| `answer_spoken` | Boolean, set on speech-synthesis start/stop |
+| `duplicate_detected` | Boolean result of the client-side duplicate-question check |
+| `similarity_score` | Jaccard similarity score from that duplicate check |
+| `mode` | Reserved allow-listed field for additional voice/session mode information |
+
+Any other field on a `voice_event` message is dropped before logging. The event's own `event` name (e.g. `transcription_started`, `transcription_completed`, `voice_question_submitted`, `duplicate_detected`, `answer_speech_started`, `answer_speech_stopped`) is preserved as `voice_event_name`.
+
+Consistent with the rest of the G6 telemetry path, raw transcript text and raw answer text are **not** stored — only their lengths and the scalar/boolean fields above. No additional privacy or security guarantees beyond this are implemented or claimed.
+
+---
+
+## 29. Judge-Friendly Demo Flow
+
+The included browser demo has three preset scenarios, available as chip buttons (`demoA`/`demoB`/`demoC`) next to the transcript box in Judge Mode. They drive the transcript box directly and are not wired to the Conference Mode microphone; the equivalent live flow in Conference Mode is to hold the mic button and speak the question instead of clicking a preset.
 
 ### Demo A — Multi-intent
 
@@ -762,7 +1006,7 @@ This exercises evidence insufficiency handling and the fixed uncertainty respons
 
 ---
 
-## 27. Design Decisions
+## 30. Design Decisions
 
 ### Deterministic control plane
 
@@ -798,7 +1042,7 @@ The server's G6 telemetry path is observational. Its allow-listed fields record 
 
 ---
 
-## 28. Limitations
+## 31. Limitations
 
 - BM25 and FAISS indexes are rebuilt in memory when the retrieval components are initialized; there is no implemented persisted-index loading path.
 - `backend/tests/` is empty; verification is provided by standalone scripts under `scripts/`.
@@ -811,7 +1055,7 @@ The server's G6 telemetry path is observational. Its allow-listed fields record 
 
 ---
 
-## 29. Future Work
+## 32. Future Work
 
 The following are architectural directions, **not implemented features** in this checkpoint:
 
@@ -822,6 +1066,26 @@ The following are architectural directions, **not implemented features** in this
 
 ---
 
-## 30. License
+## 33. Submission Verification
+
+Before submitting the GitHub repository, verify the following:
+
+```text
+✓ Source code pushed
+✓ requirements.txt present
+✓ Detailed README present
+✓ Final PPT present in repository
+✓ Demo video link present in README
+✓ Final changes committed
+✓ Final changes pushed to main
+✓ PRISM_GENAI_HACKATHON_Y2026 tag created
+✓ Tag pushed to GitHub
+```
+
+The GitHub repository submitted in the hackathon form should point to the final repository containing these artifacts.
+
+---
+
+## 34. License
 
 No `LICENSE` file is present in the repository, so this README does not declare a license.

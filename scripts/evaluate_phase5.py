@@ -263,13 +263,32 @@ class _RetrieverAdapter:
         return getattr(self._inner, name)
 
 
-def evaluate(phase6: bool) -> dict:
+def evaluate(phase6: bool, no_multi_intent: bool = False) -> dict:
+    """Offline retrieval evaluation.
+
+    Parameters
+    ----------
+    phase6:
+        When True, use the Phase 6 corpus and gold labels.
+    no_multi_intent:
+        When True, multi-intent rows are handled by a single ``StreamingRetriever``
+        call on the complete original query string instead of ``MultiIntentRetriever``.
+        Intent-level coverage is still calculated using the same per-intent gold chunk
+        IDs, but the pool of retrieved chunks comes from the single-query result.
+        All other behaviour (single-intent rows, metrics, gold labels) is unchanged.
+        Default False = existing full multi-intent retrieval behaviour.
+    """
     chunks_path = PHASE6_CHUNKS if phase6 else PHASE5_CHUNKS
     records = load_records(phase6)
     known = _known_ids(chunks_path)
     retriever = StreamingRetriever(chunks_path=str(chunks_path))
-    multi = MultiIntentRetriever(
-        chunks_path=str(chunks_path), retriever=_RetrieverAdapter(retriever)
+    # MultiIntentRetriever is constructed only when needed (full mode).
+    multi = (
+        None
+        if no_multi_intent
+        else MultiIntentRetriever(
+            chunks_path=str(chunks_path), retriever=_RetrieverAdapter(retriever)
+        )
     )
 
     r1, r3, r5, rr, lat = [], [], [], [], []
@@ -280,17 +299,32 @@ def evaluate(phase6: bool) -> dict:
         rid = rec.get("id", rec.get("query_id", "?")) if isinstance(rec, dict) else "?"
         if is_multi(rec):
             multi_n += 1
-            t0 = time.perf_counter()
-            res = asyncio.run(multi.retrieve(subquery_texts(rec), f"eval-{rid}"))
-            lat.append((time.perf_counter() - t0) * 1000)
             groups = [_collect_ids(g, known) for g in expected_groups(rec)]
-            subs = res.get("subqueries") if isinstance(res, dict) else None
-            hits = []
-            for i, g in enumerate(groups):
-                # Score each intent against its own subquery results when available.
-                src = subs[i] if isinstance(subs, list) and i < len(subs) else res
-                pool = set(_collect_ids(src, known))
-                hits.append(bool(g) and any(c in pool for c in g))
+
+            if no_multi_intent:
+                # --no-multi-intent: issue ONE query (the full original text) through
+                # the plain StreamingRetriever, then score each intent's gold chunks
+                # against the combined result pool.  Same top-K / ranking parameters
+                # as any single-intent query; MultiIntentRetriever is NOT used.
+                original_query = _first(rec, QUERY_KEYS, "")
+                t0 = time.perf_counter()
+                res = retriever.retrieve(original_query)
+                lat.append((time.perf_counter() - t0) * 1000)
+                pool = set(_collect_ids(res, known))
+                hits = [bool(g) and any(c in pool for c in g) for g in groups]
+            else:
+                # Full multi-intent path: parallel sub-queries via MultiIntentRetriever.
+                t0 = time.perf_counter()
+                res = asyncio.run(multi.retrieve(subquery_texts(rec), f"eval-{rid}"))
+                lat.append((time.perf_counter() - t0) * 1000)
+                subs = res.get("subqueries") if isinstance(res, dict) else None
+                hits = []
+                for i, g in enumerate(groups):
+                    # Score each intent against its own subquery results when available.
+                    src = subs[i] if isinstance(subs, list) and i < len(subs) else res
+                    pool = set(_collect_ids(src, known))
+                    hits.append(bool(g) and any(c in pool for c in g))
+
             m_cov.append(sum(hits) / len(hits) if hits else 0.0)
             m_pass.append(1.0 if hits and all(hits) else 0.0)
             continue
@@ -307,10 +341,16 @@ def evaluate(phase6: bool) -> dict:
         rr.append(_call_metric(reciprocal_rank, got, rel))
 
     return {
-        "corpus": chunks_path.name, "records": len(records),
-        "single_intent": single_n, "multi_intent": multi_n,
-        "Recall@1": mean(r1), "Recall@3": mean(r3), "Recall@5": mean(r5),
-        "MRR": mean(rr), "mean_latency_ms": mean(lat),
+        "corpus": chunks_path.name,
+        "records": len(records),
+        "multi_intent_mode": "no_multi_intent" if no_multi_intent else "full",
+        "single_intent": single_n,
+        "multi_intent": multi_n,
+        "Recall@1": mean(r1),
+        "Recall@3": mean(r3),
+        "Recall@5": mean(r5),
+        "MRR": mean(rr),
+        "mean_latency_ms": mean(lat),
         "multi_intent_intent_coverage": mean(m_cov) if m_cov else None,
         "multi_intent_query_pass_rate": mean(m_pass) if m_pass else None,
     }
@@ -518,6 +558,16 @@ def main() -> int:
     ap.add_argument("--offline-only", action="store_true", help="retrieval only; never calls Ollama")
     ap.add_argument("--live", action="store_true",
                     help="also run the live pass (needs Ollama): TTFT, latency, groundedness, tokens, cost per turn")
+    ap.add_argument(
+        "--no-multi-intent",
+        action="store_true",
+        dest="no_multi_intent",
+        help=(
+            "Ablation: for multi-intent Phase 6 queries, retrieve with plain StreamingRetriever "
+            "on the full original query instead of MultiIntentRetriever. "
+            "Gold labels and all metrics are unchanged. Single-intent rows are unaffected."
+        ),
+    )
     ap.add_argument("--json", metavar="PATH", help="also write the full report as JSON")
     args = ap.parse_args()
 
@@ -525,7 +575,7 @@ def main() -> int:
         ap.error("--live and --offline-only are mutually exclusive")
 
     try:
-        report = evaluate(args.phase6)
+        report = evaluate(args.phase6, no_multi_intent=args.no_multi_intent)
     except Exception as exc:
         import traceback
 
@@ -533,7 +583,8 @@ def main() -> int:
         print(f"Evaluation failed: {type(exc).__name__}: {exc}")
         return 1
 
-    print(f"Phase {'6' if args.phase6 else '5'} evaluation (offline retrieval only)")
+    mode_tag = f"  [multi_intent_mode: {report['multi_intent_mode']}]"
+    print(f"Phase {'6' if args.phase6 else '5'} evaluation (offline retrieval only){mode_tag}")
     for k, v in report.items():
         print(f"  {k}: {v:.4f}" if isinstance(v, float) else f"  {k}: {v}")
     print("  note: mean_latency_ms is offline retrieval latency, not TTFT")

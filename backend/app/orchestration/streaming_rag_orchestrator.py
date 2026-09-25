@@ -52,8 +52,14 @@ class StreamingRagOrchestrator:
         multi_intent_retriever: MultiIntentRetriever | None = None,
         llm_client: OllamaClient | None = None,
         model: str = "llama3.2:3b",
+        enable_early_retrieval: bool = True,
+        enable_retrieval_reuse: bool = True,
+        enable_multi_intent: bool = True,
     ):
         self.chunks_path = chunks_path
+        self.enable_early_retrieval = enable_early_retrieval
+        self.enable_retrieval_reuse = enable_retrieval_reuse
+        self.enable_multi_intent = enable_multi_intent
 
         # Initialize or reuse shared retrieval components
         if async_retriever is not None:
@@ -230,13 +236,13 @@ class StreamingRagOrchestrator:
         )
 
         # -------------------------------------------------------------
-        # 1. WAIT: Transcript is incomplete or unstable
+        # 1. WAIT: Transcript is incomplete or unstable (or early retrieval disabled)
         # -------------------------------------------------------------
-        if decision.action == RetrievalAction.WAIT:
+        if not self.enable_early_retrieval or decision.action == RetrievalAction.WAIT:
             return {
                 "event": "controller_decision",
                 "action": "WAIT",
-                "reason": decision.reason,
+                "reason": "early_retrieval_disabled" if not self.enable_early_retrieval else decision.reason,
                 "confidence": decision.confidence,
                 "query_version": session.query_version,
                 "generation_id": session.active_generation_id,
@@ -264,14 +270,14 @@ class StreamingRagOrchestrator:
         generation_id = session.start_new_query(text)
 
         # Detect multi-intent vs single-intent
-        multi_intent_dec = self.multi_intent_detector.detect(text)
+        multi_intent_dec = self.multi_intent_detector.detect(text) if self.enable_multi_intent else None
 
         # Keep the per-intent retrieval structure so a later commit can
         # reuse the early multi-intent retrieval instead of falling back
         # to the flattened evidence list.
         intent_results: list[dict[str, Any]] | None = None
 
-        if multi_intent_dec.is_multi_intent:
+        if multi_intent_dec and multi_intent_dec.is_multi_intent:
             subqueries = self.multi_intent_decomposer.decompose(text)
             subquery_strings = [sq.query for sq in subqueries]
 
@@ -480,9 +486,9 @@ class StreamingRagOrchestrator:
             )
 
             # Check multi-intent on replacement
-            multi_dec = self.multi_intent_detector.detect(clean_query)
+            multi_dec = self.multi_intent_detector.detect(clean_query) if self.enable_multi_intent else None
 
-            if multi_dec.is_multi_intent:
+            if multi_dec and multi_dec.is_multi_intent:
                 subqueries = self.multi_intent_decomposer.decompose(clean_query)
 
                 ret_res = await self.multi_intent_retriever.retrieve(
@@ -516,9 +522,10 @@ class StreamingRagOrchestrator:
         else:
             # NEW Query: reuse the accepted early retrieval when the commit
             # repeats it exactly, or extends it (transcript kept growing).
-            reuse = session.find_reusable_retrieval(text)
+            # Bypassed when enable_retrieval_reuse is False.
+            reuse = session.find_reusable_retrieval(text) if self.enable_retrieval_reuse else None
 
-            if reuse.mode == "exact":
+            if reuse and reuse.mode == "exact":
                 generation_id = reuse.retrieval.generation_id
                 evidence = reuse.retrieval.results
 
@@ -532,7 +539,7 @@ class StreamingRagOrchestrator:
                 # Recover the per-intent structure saved during early retrieval.
                 intent_results = reuse.retrieval.intent_results
 
-            elif reuse.mode == "extension":
+            elif reuse and reuse.mode == "extension":
                 early_evidence = reuse.retrieval.results
 
                 # Preserve multi-intent metadata while extending the query.
@@ -579,15 +586,15 @@ class StreamingRagOrchestrator:
 
             else:
                 generation_id = session.start_new_query(text)
-                multi_dec = self.multi_intent_detector.detect(text)
+                multi_dec = self.multi_intent_detector.detect(text) if self.enable_multi_intent else None
 
                 turn.update(
                     retrieval_reuse_mode="new",
-                    retrieval_reuse_reason=reuse.reason,
+                    retrieval_reuse_reason=reuse.reason if reuse else "fresh_retrieval",
                     retrieval_calls_this_turn=1,
                 )
 
-                if multi_dec.is_multi_intent:
+                if multi_dec and multi_dec.is_multi_intent:
                     subqueries = self.multi_intent_decomposer.decompose(text)
 
                     ret_res = await self.multi_intent_retriever.retrieve(
@@ -622,7 +629,7 @@ class StreamingRagOrchestrator:
         # 4. Evidence Selection Stage
         # 5. Evidence Sufficiency Gate
         # -------------------------------------------------------------
-        is_multi_intent = bool(intent_results) and len(intent_results) > 1
+        is_multi_intent = self.enable_multi_intent and bool(intent_results) and len(intent_results) > 1
         multi_intent_payload: list[dict[str, Any]] = []
 
         if is_multi_intent:
